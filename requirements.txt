@@ -1,0 +1,4 @@
+pip install discord
+sudo apt install ffmpeg
+pip install yt-dlp
+pip install pynacl
