@@ -1,12 +1,9 @@
 import os
 from dotenv import load_dotenv
-import discord
 from discord.ext import commands, tasks
-import random as rd
 from load_json import *
-import asyncio
 import yt_dlp as youtube_dl
-
+from Games import *
 # https://discordpy.readthedocs.io/en/stable/ext/commands/api.html#bots
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Message
 
@@ -22,17 +19,18 @@ intents.messages = True
 intents.members = True  # Enable the members intent
 intents.message_content = True  # Required for reading message content
 intents.reactions = True
+intents.voice_states = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 song_queue = asyncio.Queue()
 is_playing = False
 voice_client = None
+active_users = set()
 
 def in_allowed_channel(ctx):
     return ctx.channel.id == channels["commands"]
 
 def get_user_from_id(id: int) -> User:
-
     try:
         return users[str(id)]
     except:
@@ -49,7 +47,108 @@ def play_sound(voice_client: discord.VoiceClient, sound: str):
 async def on_ready():
     print(f'Logged in as {bot.user}')
     await bot.change_presence(activity=discord.Game(name="Devant ta porte..."))
+    bot.loop.create_task(porklard_voc())
     periodic_save.start()
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    if str(reaction.emoji) == '🔫' and not user.bot:
+        await reaction.remove(user)
+    print(f"reaction is {reaction}\n")
+
+@bot.event
+async def on_message(message):
+    print("MESSAGE SENT : ", message.content)
+
+    rand = rd.random()
+    threshold = 0.025  # once every 40 messages
+
+    if not message.attachments and message.content[0] in ['!', ',', '/']:
+        print('Processing command')
+        await bot.process_commands(message)  # Allow command processing
+        return
+
+    print(f"message guild :  {message.guild}")
+    if not message.author.bot and message.guild is not None:
+        user = get_user_from_id(message.author.id)
+        give_money(user, message)
+        user.set_previous_message(message.content)
+
+        if rand <= threshold:
+            await message.reply(answers[rd.choice(list(answers.keys()))])
+
+        if not message.attachments and (" tg " in message.content.lower() or "ta gueule" in message.content.lower()):
+            print("Sent private message to :", message.author.id)
+            for _ in range(5):
+                await message.author.send("C'EST QUI QUI FERME SA GUEULE MAINTENANT ???")
+                await message.author.send(answers["john_pork"])
+
+    print("user id = ", message.author.id)
+    print("random number = ", rand)
+    print("____________")
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    voice_client = member.guild.voice_client
+
+    general = discord.utils.get(member.guild.text_channels, id=channels["general"])
+
+    # Check if the member joined a voice channel
+    if not before.channel and after.channel and not member.bot:
+        user = get_user_from_id(member.id)
+
+        if user and user.get_porklards() < 0:
+            await member.move_to(None)
+            await general.send(f'{member.mention} t\'as pas la thune gros mdrr donc tu voc pas. POV ton argent : {user.get_porklards()}. Ptet falloir faire un emprunt ;)')
+
+    # Check if the member deafened themselves
+    elif not before.self_deaf and after.self_deaf:
+        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
+
+        if target_channel:
+            await member.move_to(target_channel)
+        if not voice_client:  # If the bot isn't in any voice channel
+            await target_channel.connect()  # Bot joins the target channel
+            print("Bot has joined the channel.")
+        elif voice_client.channel != target_channel:
+            await voice_client.move_to(target_channel)
+
+        else:
+            print("Target channel not found!")
+
+    # Check if user undeafened themselves
+    elif before.self_deaf and not after.self_deaf:
+        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
+        print(f"voice client : {voice_client}")
+        if target_channel and member.voice.channel == target_channel and voice_client and voice_client.channel == target_channel:
+            print("Sound can be played")
+            play_sound(voice_client, john_pork_calling)
+            while voice_client.is_playing():
+                await asyncio.sleep(1)
+            await voice_client.disconnect()
+            print("Bot disconnected")
+
+        else:
+            print("At least one condition was not met")
+
+    # Check if user left a channel
+    elif before.channel and not after.channel and not member.bot:  # The member was in a channel and now left
+        if before.channel.guild.me in before.channel.members and len([m for m in before.channel.members if not m.bot]) == 1:
+            await voice_client.disconnect()
+        if general:
+            rand = rd.random()
+            threshold = 0.02  # 1 every 50 disconnects
+            if rand <= threshold:
+                await general.send(f"{member.mention} bah alors ça rage mdrrrrr")
+
+@bot.event
+async def on_member_join(member):
+    if not member.bot and not str(member.id) in users.keys():
+        user = User(member.name, member.id, 0, 0)
+        users[str(member.id)] = user
+        user.save_state()
+        print(f'Member {member.name} joined the server')
+
 
 @bot.command(name='add_missing_members', help="add missing members")
 async def add_missing_members(ctx):
@@ -185,7 +284,6 @@ async def shop(ctx):
         else:
             user.add_porklards(-200)
             user.set_enhanced_gambles(5)
-            
 
 
 @bot.command()
@@ -219,138 +317,20 @@ async def give(ctx, member: discord.Member, gift_amount: int):
                 user.add_porklards(gift_amount)
                 await ctx.send(f"T'es vrm trop sympa t'as donné {gift_amount}, mtn t'as {giver.get_porklards()}")
 
-
-
 @bot.command(aliases=['rr'])
 async def russian_roulette(ctx, targeted_member: discord.Member, amount : int):
-    target = get_user_from_id(targeted_member.id)
-    author = get_user_from_id(ctx.author.id)
-    print('roulette?')
-    if target is None:
-        await ctx.send("Deso gros il existe pas ce type")
-    elif amount <= 0:
-        await ctx.send("T'as pas de couilles")
-    elif author.get_porklards() < amount:
-        await ctx.send("Tu fais le mec mais t'as pas les thunes qui suivent")
-    elif target.get_porklards() < amount:
-        await ctx.send("Tu peux t'attaquer à un mec qui a des thunes ouuuu ?")
-    elif author == target:
-        await ctx.send("T'es con ou t'es con ? ")
-    else: 
-        await ctx.message.add_reaction('✅') #green checkmark
-        await ctx.message.add_reaction('❌') #red cross
-
-        def check(reaction, user):
-            return str(reaction.emoji) in ['✅','❌'] and user.id == targeted_member.id and reaction.message.id == ctx.message.id
-        
-        try:
-            reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
-            print(reaction)
-        except asyncio.TimeoutError:
-            return await ctx.message.reply("MAIS QU'IL EST LENT CE LAIT")
-        
-        if str(reaction.emoji) == '❌':
-            await ctx.message.reply("Tapette spotted")
-        elif str(reaction.emoji) == '✅':
-
-            turns = 6
-            
-            bullet_index = rd.randint(0, turns - 1)
-            
-
-            is_game_lost = False
-            turn_count = 0 
-            msg = await ctx.message.reply('uwu')
-            await msg.add_reaction('🔫')
-
-            while is_game_lost == False:
-                current_user = author if turn_count % 2 == 0 else target
-
-                gun = ['[:black_circle:]' for i in range(turns-turn_count)]
-                roulette_animation = [emoji for emoji in gun]
-                roulette_current_user_message = f"A `{current_user.get_username()}` de presser la gachette\n"
-                roulette_asci_art = "(\\-_•)︻デ═一                 (•\\_•)"
-                roulette_message = roulette_current_user_message + " ".join(roulette_animation) + "         " + roulette_asci_art
-
-                msg = await msg.edit(content=roulette_message)
-                
-
-                def check(reaction, user):
-                    return str(reaction.emoji) == '🔫' and user.id == current_user.get_id() and reaction.message.id == msg.id
-
-                try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
-                except asyncio.TimeoutError:
-                    await ctx.send("TROP LENT LE LAIT")
-                    is_game_lost = True
-
-                for i in range(turns-turn_count):
-                    roulette_animation[i%(turns-turn_count)] = '[:boom:]'
-                    roulette_message = roulette_current_user_message + " ".join(roulette_animation) + "         " + roulette_asci_art
-                    await msg.edit(content=roulette_message)
-                    await asyncio.sleep(0.1)
-                    if turn_count != bullet_index:
-                        roulette_animation[i%(turns-turn_count)] = '[:black_circle:]'
-
-                if turn_count == bullet_index:
-                    print(f"End of the game, loser is {current_user.get_username()}")
-                    is_game_lost = True
-
-                print(f"bullet index : {bullet_index}")
-                print(f"turn_count : {turn_count}")
-                turn_count += 1
-
-            
-            loser = current_user
-            if current_user == target:
-                winner = author
-            else:
-                winner = target
-
-            winner.add_porklards(amount)
-            loser.add_porklards(-amount)
-            await msg.edit(content=f'`{winner.get_username()}` a gagné mtn il a {winner.get_porklards()} et l\'autre bouff est à {loser.get_porklards()}' + '\n' + " ".join(roulette_animation) + "         " + roulette_asci_art)
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    if str(reaction.emoji) == '🔫' and not user.bot:
-        await reaction.remove(user)
-    print(f"reaction is {reaction}\n")
+    await start_rr(ctx, targeted_member, amount, bot, get_user_from_id)
 
 
 
 @bot.command(aliases=['g'])
 @commands.check(in_allowed_channel)
 async def gamble(ctx, amount=10):
-    amount = (int) (amount)
-    rand = rd.random()
-    user = get_user_from_id(ctx.author.id)
-    win_threshold = 0.4 if user.get_enhanced_gambles() == 0 else 0.6
-    print(f' User {user.get_username()} is gambling with a {win_threshold} win probability and has {user.get_enhanced_gambles()} enhanced gambles\n')
-    if user is None:
-        message = "Deso gros t'existes pas"
-    if user.get_porklards() < amount or amount <= 0:
-        message = "Mais tu te prends pour qui en vrai ? T'es juste pauvre mgl \n"
-    else:
-        if rand <= 0.01:
-            gain = amount*3
-            message = "JACK PUTAIN DE POT\n"
-        elif rand <= win_threshold and rand > 0.01:
-            gain = amount
-            message = "Bj gros bj\n"
-        elif rand >= 0.99:
-            gain = -amount*3
-            message = "Oh le malaise, enjoy de ne plus aller en voc :)\n"
-        else:
-            gain = -amount
-            message = "Ah ça c'est pas de bol\n"
+    await start_gamble(ctx, amount, get_user_from_id)
 
-        user.add_porklards(gain)
-        message += f"T'as gagné {gain} porklards ! Mtn t'es à {user.get_porklards()}"
-
-        if user.get_enhanced_gambles() > 0:
-            user.set_enhanced_gambles(user.get_enhanced_gambles() - 1)
-    await ctx.send(message)
+@bot.command(aliases=['bj'],help="play blackjack")
+async def blackjack(ctx, amount : int = 10):
+    await playBJ(ctx, amount,bot,get_user_from_id)
 
 @bot.command()
 async def pork(ctx):
@@ -361,6 +341,12 @@ async def pork(ctx):
     channel = await bot.fetch_channel(channels["voice_main"])
     for user in channel.members:
         await user.edit(mute=True)
+
+@bot.command()
+async def call(ctx):
+    if ctx.author.voice:
+        channel = ctx.author.voice.channel
+        await channel.connect()
 
 @bot.command()
 async def unpork(ctx):
@@ -390,37 +376,6 @@ def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     print(f'Bad words detected : {bad_words_count}')
     return -bad_words_count * bad_word_penalty
 
-@bot.event
-async def on_message(message):
-    print("MESSAGE SENT : ", message.content)
-
-    rand = rd.random()
-    threshold = 0.025  # once every 40 messages
-
-    if not message.attachments and message.content[0] in ['!', ',', '/']:
-        print('Processing command')
-        await bot.process_commands(message)  # Allow command processing
-        return
-
-    print(f"message guild :  {message.guild}")
-    if not message.author.bot and message.guild is not None:
-        user = get_user_from_id(message.author.id)
-        give_money(user, message)
-        user.set_previous_message(message.content)
-
-        if rand <= threshold:
-            await message.reply(answers[rd.choice(list(answers.keys()))])
-
-        if not message.attachments and (" tg " in message.content.lower() or "ta gueule" in message.content.lower()):
-            print("Sent private message to :", message.author.id)
-            for _ in range(5):
-                await message.author.send("C'EST QUI QUI FERME SA GUEULE MAINTENANT ???")
-                await message.author.send(answers["john_pork"])
-
-    print("user id = ", message.author.id)
-    print("random number = ", rand)
-    print("____________")
-
 
 def save_users():
     for user in users.values():
@@ -439,67 +394,31 @@ async def force_save(ctx):
     else:
         await ctx.author.send("On rigole on met des Gifs et tout mais la vie de ma ptn de mère la prochaine fois que t'essaies de faire une commande admin je te retrouve et je vide ton frigo")
 
-@bot.event
-async def on_voice_state_update(member, before, after):
-    voice_client = member.guild.voice_client
+@bot.listen('on_voice_state_update')
+async def check_empty_channel(member, before, after):
+    if before.channel and not after.channel:
+        voice_client = member.guild.voice_client
+        if voice_client and voice_client.channel == before.channel:
+            humans = [m for m in before.channel.members if not m.bot]
+            if len(humans) == 0:
+                await voice_client.disconnect()
 
-    general = discord.utils.get(member.guild.text_channels, id=channels["general"])
+async def porklard_voc(delay = 5):
+    while True:
+        if active_users:
+            for user_id in active_users:
+                currUser = get_user_from_id(user_id)
+                currUser.add_porklards(1)
+        await asyncio.sleep(delay)
 
-    # Check if the member joined a voice channel
+@bot.listen('on_voice_state_update')
+async def add_porklard_voc(member,before,after):
     if not before.channel and after.channel and not member.bot:
-        user = get_user_from_id(member.id)
+        active_users.add(member.id)
 
-        if user and user.get_porklards() < 0:
-            await member.move_to(None)
-            await general.send(f'{member.mention} t\'as pas la thune gros mdrr donc tu voc pas. POV ton argent : {user.get_porklards()}. Ptet falloir faire un emprunt ;)')
+    elif before.channel and not after.channel and not member.bot:
+        active_users.discard(member.id)
 
-    # Check if the member deafened themselves
-    elif not before.self_deaf and after.self_deaf:
-        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
-
-        if target_channel:
-            await member.move_to(target_channel)
-        if not voice_client:  # If the bot isn't in any voice channel
-            await target_channel.connect()  # Bot joins the target channel
-            print("Bot has joined the channel.")
-        elif voice_client.channel != target_channel:
-            await voice_client.move_to(target_channel)
-
-        else:
-            print("Target channel not found!")
-
-    # Check if user undeafened themselves
-    elif before.self_deaf and not after.self_deaf:
-        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
-        print(f"voice client : {voice_client}")
-        if target_channel and member.voice.channel == target_channel and voice_client and voice_client.channel == target_channel:
-            print("Sound can be played")
-            play_sound(voice_client, john_pork_calling)
-            while voice_client.is_playing():
-                await asyncio.sleep(1)
-            await voice_client.disconnect()
-            print("Bot disconnected")
-
-        else:
-            print("At least one condition was not met")
-
-    # Check if user left a channel
-    elif before.channel and not after.channel and not member.bot:  # The member was in a channel and now left
-        if before.channel.guild.me in before.channel.members and len([m for m in before.channel.members if not m.bot]) == 1:
-            await voice_client.disconnect()
-        if general:
-            rand = rd.random()
-            threshold = 0.02  # 1 every 50 disconnects
-            if rand <= threshold:
-                await general.send(f"{member.mention} bah alors ça rage mdrrrrr")
-
-@bot.event
-async def on_member_join(member):
-    if not member.bot and not str(member.id) in users.keys():
-        user = User(member.name, member.id, 0, 0)
-        users[str(member.id)] = user
-        user.save_state()
-        print(f'Member {member.name} joined the server')
 
 @bot.command()
 async def start_v_serv(ctx):
