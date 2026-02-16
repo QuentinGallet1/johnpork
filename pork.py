@@ -43,6 +43,7 @@ def play_sound(voice_client: discord.VoiceClient, sound: str):
     else:
         print("File " + sound + " not found")
 
+#region BOT EVENT
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
@@ -148,7 +149,7 @@ async def on_member_join(member):
         users[str(member.id)] = user
         user.save_state()
         print(f'Member {member.name} joined the server')
-
+#endregion
 
 @bot.command(name='add_missing_members', help="add missing members")
 async def add_missing_members(ctx):
@@ -286,7 +287,7 @@ async def shop(ctx):
             user.set_enhanced_gambles(5)
 
 
-@bot.command()
+@bot.command(aliases=['c'])
 async def classement(ctx, depth=10):
     message = "```Classement des plus gros porcs du serveur : \n"
     users_copy = list(users.values())
@@ -403,20 +404,27 @@ async def check_empty_channel(member, before, after):
             if len(humans) == 0:
                 await voice_client.disconnect()
 
-async def porklard_voc(delay = 5):
+async def porklard_voc(delay = 60):
     while True:
         if active_users:
             for user_id in active_users:
                 currUser = get_user_from_id(user_id)
-                currUser.add_porklards(1)
+                currUser.add_porklards(5)
         await asyncio.sleep(delay)
 
 @bot.listen('on_voice_state_update')
 async def add_porklard_voc(member,before,after):
-    if not before.channel and after.channel and not member.bot:
+    if member.bot :
+        return
+    if (not before.self_mute and not before.self_deaf ) and (after.self_mute or after.self_deaf )and active_users.__contains__(member.id):
+        active_users.discard(member.id)
+    if (before.self_mute or  before.self_deaf) and (not after.self_mute and not after.self_deaf):
         active_users.add(member.id)
 
-    elif before.channel and not after.channel and not member.bot:
+    if not before.channel and after.channel:
+        active_users.add(member.id)
+
+    elif before.channel and not after.channel:
         active_users.discard(member.id)
 
 
