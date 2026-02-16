@@ -12,6 +12,7 @@ TOKEN = os.getenv("TOKEN")
 #john_pork_calling = "audio/john_pork_calling.mp3"
 john_pork_calling = "donne.mp3"
 message_reward = 1
+daily_reward = 50
 bad_word_penalty = 10
 
 intents = discord.Intents.default()
@@ -72,7 +73,11 @@ async def on_message(message):
     print(f"message guild :  {message.guild}")
     if not message.author.bot and message.guild is not None:
         user = get_user_from_id(message.author.id)
-        give_money(user, message)
+        if message.channel.id == channels["daily"]:
+            give_money(user, message,True)
+            print("give daily_reward")
+        else :
+            give_money(user, message)
         user.set_previous_message(message.content)
 
         if rand <= threshold:
@@ -83,6 +88,8 @@ async def on_message(message):
             for _ in range(5):
                 await message.author.send("C'EST QUI QUI FERME SA GUEULE MAINTENANT ???")
                 await message.author.send(answers["john_pork"])
+
+
 
     print("user id = ", message.author.id)
     print("random number = ", rand)
@@ -150,17 +157,6 @@ async def on_member_join(member):
         user.save_state()
         print(f'Member {member.name} joined the server')
 #endregion
-
-@bot.command(name='add_missing_members', help="add missing members")
-async def add_missing_members(ctx):
-    print("add_missing_members command triggered!")
-    if (get_user_from_id(ctx.author.id).is_admin()):
-        for guilde in bot.guilds:
-            for member in guilde.members:
-                if not member.bot and not str(member.id) in users:
-                    user = User(member.name, member.id, 0, 0)
-                    users[member.id] = user
-                    user.save_state()
 
 
 def get_audio_source(url):
@@ -287,7 +283,7 @@ async def shop(ctx):
             user.set_enhanced_gambles(5)
 
 
-@bot.command(aliases=['c'])
+@bot.command(aliases=['c','lb'])
 async def classement(ctx, depth=10):
     message = "```Classement des plus gros porcs du serveur : \n"
     users_copy = list(users.values())
@@ -330,7 +326,7 @@ async def gamble(ctx, amount=10):
 @bot.command(aliases=['bj'],help="play blackjack")
 async def blackjack(ctx, amount : int = 10):
     await playBJ(ctx, amount,bot,get_user_from_id)
-
+#region Admin Command
 @bot.command()
 async def pork(ctx):
     if not get_user_from_id(ctx.author.id).is_admin():
@@ -340,13 +336,6 @@ async def pork(ctx):
     channel = await bot.fetch_channel(channels["voice_main"])
     for user in channel.members:
         await user.edit(mute=True)
-
-@bot.command()
-async def call(ctx):
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        await channel.connect()
-
 @bot.command()
 async def unpork(ctx):
     if not get_user_from_id(ctx.author.id).is_admin():
@@ -356,12 +345,43 @@ async def unpork(ctx):
     channel = await bot.fetch_channel(channels["voice_main"])
     for user in channel.members:
         await user.edit(mute=False)
+@bot.command(name='add_missing_members', help="add missing members")
+async def add_missing_members(ctx):
+    print("add_missing_members command triggered!")
+    if (get_user_from_id(ctx.author.id).is_admin()):
+        for guilde in bot.guilds:
+            for member in guilde.members:
+                if not member.bot and not str(member.id) in users:
+                    user = User(member.name, member.id, 0, 0)
+                    users[member.id] = user
+                    user.save_state()
+@bot.command(aliases=['cc'],help="remove user from classement")
+async def clearclassement(ctx):
+    if not get_user_from_id(ctx.author.id).is_admin():
+        await ctx.author.send("On rigole on met des Gifs mais la vie de ma mère la prochaine fois que t'envoies un message je te retrouve et je vide ton frigo")
+        return
+    member_ids = {str(member.id) for member in ctx.guild.members}
+    memberToRemove = []
+    for user in users.keys():
+        if user not in member_ids:
+            memberToRemove.append(user)
+    for user in memberToRemove:
+        del users[user]
+    print("clear effectue")
+#endregion
+@bot.command()
+async def call(ctx):
+    if ctx.author.voice:
+        channel = ctx.author.voice.channel
+        await channel.connect()
 
-def give_money(user: User, message: discord.Message):
+def give_money(user: User, message: discord.Message,isDaily = False):
     if len(message.content) > 1 and user.get_previous_message() != message.content:
         if not message.attachments:
             computed_bad_words_penalty = compute_bad_words_penalty(user, message)
-        user.add_porklards(message_reward + computed_bad_words_penalty)
+        gain = daily_reward if isDaily else message_reward
+        print(isDaily)
+        user.add_porklards(gain + computed_bad_words_penalty)
 
 def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     with open("insults.txt", 'r', encoding='utf-8') as file:

@@ -1,12 +1,8 @@
 import json
-import random as rd
 
 def load_data(filename: str):
     with open(filename, 'r', encoding='utf-8') as file:
         content = file.read()
-        print(f"Loading {filename}, first 100 chars: {content[:100]}")
-        if not content.strip():
-            raise ValueError(f"{filename} is empty")
         data = json.loads(content)
     return data
 
