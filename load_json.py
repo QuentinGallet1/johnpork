@@ -1,13 +1,18 @@
 import json
 import random as rd
 
-def load_data():
-    with open('info.json', 'r') as file:
-        data = json.load(file)
+def load_data(filename: str):
+    with open(filename, 'r', encoding='utf-8') as file:
+        content = file.read()
+        print(f"Loading {filename}, first 100 chars: {content[:100]}")
+        if not content.strip():
+            raise ValueError(f"{filename} is empty")
+        data = json.loads(content)
     return data
 
-data = load_data()
-
+users = load_data("users.json")
+answers = load_data("answers.json")
+channels = load_data("channels.json")
 class User:
     def __init__(self, username : str, id : int, admin : int, porklards : int):
         self._username = username
@@ -35,7 +40,7 @@ class User:
     def get_previous_message(self) -> str:
         return self._previous_message
     
-    def is_admin(self) -> bool:
+    def is_admin(self) -> int:
         return self._admin
     
     def get_enhanced_gambles(self) -> int:
@@ -50,25 +55,24 @@ class User:
 
     def set_previous_message(self, message : str):
         self._previous_message = message
-    
-    def save_state(self):
 
-        user_data = {
+    def save_state(self):
+        with open('users.json', 'r', encoding='utf-8-sig') as file:
+            all_users = json.load(file)
+
+        all_users[self._username] = {
             "id": str(self._id),
             "admin": str(self._admin),
             "porklards": str(self._porklards)
         }
+        with open('users.json', 'w', encoding='utf-8') as file:
+            json.dump(all_users, file, indent=4, ensure_ascii=False)
 
-        data["users"][self._username] = user_data
 
-        with open('info.json', 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4)
-
-    
     
 
 
-answers = {answer:data["answers"][answer] for answer in data["answers"]}
+answers = {answer:answers[answer] for answer in answers}
 
 users = {
     user_data["id"]: User(
@@ -77,9 +81,9 @@ users = {
         admin = int(user_data["admin"]),
         porklards = int(user_data["porklards"])
     )
-    for user_name, user_data in data["users"].items()
+    for user_name, user_data in users.items()
 }
-channels = {channel:int(data["channels"][channel]) for channel in data["channels"]}
+channels = {channel:int(channels[channel]) for channel in channels}
 
 
 

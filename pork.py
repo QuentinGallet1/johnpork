@@ -322,8 +322,6 @@ async def give(ctx, member: discord.Member, gift_amount: int):
 async def russian_roulette(ctx, targeted_member: discord.Member, amount : int):
     await start_rr(ctx, targeted_member, amount, bot, get_user_from_id)
 
-
-
 @bot.command(aliases=['g'])
 @commands.check(in_allowed_channel)
 async def gamble(ctx, amount=10):
@@ -376,7 +374,6 @@ def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
             bad_words_count += 1
     print(f'Bad words detected : {bad_words_count}')
     return -bad_words_count * bad_word_penalty
-
 
 def save_users():
     for user in users.values():
