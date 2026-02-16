@@ -1,6 +1,7 @@
-﻿import discord
-import asyncio
+﻿import asyncio
 import random as rd
+
+import discord
 
 
 #region russian_roulette
@@ -189,6 +190,10 @@ async def CheckLose(currentHand,opponentHand):
 async def playBJ(context, amount : int ,bot,get_user_from_id):
     await generateDeck()
     currentuser = get_user_from_id(context.author.id)
+    if currentuser.get_porklards() < amount:
+        await context.send("BAHAHAHA sale pauvre reviens quand tu pourras te payer un tacos")
+        return
+    currentuser.add_porklards(-amount)
     currentHand = []
     opposantHand = []
     embed = discord.Embed(
@@ -227,7 +232,7 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
             return
 
     result = "perdu " if isLose else "gagner"
-    currentgain = -amount if isLose else amount
+    currentgain = 0 if isLose else amount
     currentuser.add_porklards(currentgain)
     await ctx.channel.send("tu as " +str(await CalculateHand(currentHand))+ " et John Pork à "+ str(await CalculateHand(opposantHand))+ " donc tu as "  + result + " " + str(amount))
 #endregion
