@@ -140,14 +140,14 @@ async def generateDeck():
         for j in num:
             cartes.append(str(j)+i)
 
-async def drawCard(deck,hand,ctx,embed,isPlayer = True):
+async def drawCard(deck,hand,ctx,embed,currentuser,isPlayer = True):
     value =  rd.choice(deck)
     hand.append(value)
     index = len(hand)-1
     deck.remove(hand[index])
     valueToDisplay = await DisplayCard(hand)
     valueToDisplay += "\n Total = " + str(await CalculateHand(hand))
-    embed.set_field_at(index=1 if isPlayer else 0,name="Ta main" if isPlayer else "La main de John Pork", value=valueToDisplay, inline=False)
+    embed.set_field_at(index=1 if isPlayer else 0,name=currentuser.get_username() if isPlayer else "John Pork", value=valueToDisplay, inline=False)
     await ctx.edit(embed=embed)
 
 async def CalculateHand(cards):
@@ -175,17 +175,19 @@ async def DisplayCard(hand):
     a=a[:-3]
     return a
 
-async def CheckLose(currentHand,opponentHand):
+async def CheckResult(currentHand,opponentHand):
     curHand = await CalculateHand(currentHand)
     oppHand = await CalculateHand(opponentHand)
     if curHand > 21:
-        return True
+        return 0
     elif oppHand > 21:
-        return False
-    elif curHand >= oppHand:
-        return False
+        return 1
+    elif curHand > oppHand:
+        return 1
+    elif curHand == oppHand:
+        return 2
     else :
-        return True
+        return 0
 
 async def playBJ(context, amount : int ,bot,get_user_from_id):
     await generateDeck()
@@ -193,23 +195,26 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
     if currentuser.get_porklards() < amount:
         await context.send("BAHAHAHA sale pauvre reviens quand tu pourras te payer un tacos")
         return
-    currentuser.add_porklards(-amount)
+    if amount <= 0:
+        await context.send("Fraudeur de merde xdddd")
+        return
+    
     currentHand = []
     opposantHand = []
     embed = discord.Embed(
         title="BlackJack ",
         color=discord.Color.red()
     )
-    embed.add_field(name="La main de John Pork", value=await DisplayCard(opposantHand), inline=False)
-    embed.add_field(name="Ta main", value=await DisplayCard(currentHand), inline=False)
+    embed.add_field(name="John Pork", value=await DisplayCard(opposantHand), inline=False)
+    embed.add_field(name=currentuser.get_username(), value=await DisplayCard(currentHand), inline=False)
     ctx = await context.channel.send(embed = embed)
     await ctx.add_reaction("⬆️")
     await ctx.add_reaction("↔️")
-    await drawCard(cartes,currentHand,ctx,embed)
-    await drawCard(cartes,opposantHand,ctx,embed,False)
-    await drawCard(cartes,currentHand,ctx,embed)
+    await drawCard(cartes,currentHand,ctx,embed,currentuser)
+    await drawCard(cartes,opposantHand,ctx,embed,currentuser,False)
+    await drawCard(cartes,currentHand,ctx,embed,currentuser)
     isPlaying = True
-    isLose = False
+    result = 0
     while isPlaying :
         def check(reaction, user):
             return str(reaction.emoji) in ['⬆️','↔️'] and user == context.author and reaction.message.id == ctx.id
@@ -218,21 +223,30 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
             reaction, user = await bot.wait_for('reaction_add', timeout=120.0, check=check)
             await reaction.remove(user)
             if str(reaction.emoji) == '⬆️':
-                await drawCard(cartes,currentHand,ctx,embed)
-                isLose = await CheckLose(currentHand,opposantHand)
-                isPlaying = not isLose
+                await drawCard(cartes,currentHand,ctx,embed, currentuser)
+                result = await CheckResult(currentHand,opposantHand)
+                isPlaying = result != 0
             elif str(reaction.emoji) == '↔️':
                 while int(await CalculateHand(opposantHand)) <17:
-                    await drawCard(cartes,opposantHand,ctx,embed,False)
-                isLose = await CheckLose(currentHand,opposantHand)
+                    await drawCard(cartes,opposantHand,ctx,embed,currentuser,False)
+                result = await CheckResult(currentHand,opposantHand)
                 isPlaying = False
 
         except TimeoutError:
             await context.channel.send("Temps écoulé !")
             return
 
-    result = "perdu " if isLose else "gagner"
-    currentgain = 0 if isLose else amount
-    currentuser.add_porklards(currentgain)
-    await ctx.channel.send("tu as " +str(await CalculateHand(currentHand))+ " et John Pork à "+ str(await CalculateHand(opposantHand))+ " donc tu as "  + result + " " + str(amount))
+    gain = 0
+    if result == 0:
+        gain = -amount
+        result = "perdu"
+    elif result == 1:
+        gain = amount
+        result = "gagné"
+    elif result == 2:
+        result = "gagné"
+    
+    currentuser.add_porklards(gain)
+
+    await ctx.channel.send("tu as " +str(await CalculateHand(currentHand))+ " et John Pork a "+ str(await CalculateHand(opposantHand))+ " donc tu as "  + result + " " + str(abs(gain)))
 #endregion

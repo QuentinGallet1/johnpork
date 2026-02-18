@@ -6,9 +6,10 @@ def load_data(filename: str):
         data = json.loads(content)
     return data
 
-users = load_data("users.json")
-answers = load_data("answers.json")
-channels = load_data("channels.json")
+users_data = load_data("users.json")
+answers_data = load_data("answers.json")
+channels_data = load_data("channels.json")
+
 class User:
     def __init__(self, username : str, id : int, admin : int, porklards : int):
         self._username = username
@@ -68,7 +69,7 @@ class User:
     
 
 
-answers = {answer:answers[answer] for answer in answers}
+answers = {answer:answers_data[answer] for answer in answers_data}
 
 users = {
     user_data["id"]: User(
@@ -77,9 +78,12 @@ users = {
         admin = int(user_data["admin"]),
         porklards = int(user_data["porklards"])
     )
-    for user_name, user_data in users.items()
+    for user_name, user_data in users_data.items()
 }
-channels = {channel:int(channels[channel]) for channel in channels}
+
+
+
+channels = {channel:int(channels_data[channel]) for channel in channels_data}
 
 
 
