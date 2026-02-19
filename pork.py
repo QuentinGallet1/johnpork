@@ -12,7 +12,7 @@ TOKEN = os.getenv("TOKEN")
 #john_pork_calling = "audio/john_pork_calling.mp3"
 john_pork_calling = "donne.mp3"
 message_reward = 1
-daily_reward = 50
+daily_reward = 20
 bad_word_penalty = 10
 
 intents = discord.Intents.default()
@@ -426,7 +426,7 @@ async def porklard_voc(delay = 60):
         if active_users:
             for user_id in active_users:
                 currUser = get_user_from_id(user_id)
-                currUser.add_porklards(5)
+                currUser.add_porklards(1)
         await asyncio.sleep(delay)
 
 @bot.listen('on_voice_state_update')
