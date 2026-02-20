@@ -1,14 +1,22 @@
 import json
 
+
+
 def load_data(filename: str):
     with open(filename, 'r', encoding='utf-8') as file:
         content = file.read()
         data = json.loads(content)
     return data
+def add_data(key: str, value, filename: str):
+    data = load_data(filename)
+    data[key] = value
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
 
 users_data = load_data("users.json")
 answers_data = load_data("answers.json")
 channels_data = load_data("channels.json")
+sounds_data = load_data("sounds.json")
 
 class User:
     def __init__(self, username : str, id : int, admin : int, porklards : int):
@@ -24,7 +32,13 @@ class User:
     
     def __repr__(self): 
         return self.__str__()
-    
+
+    def use_daily(self, current_daily):
+        self._useDaily = current_daily
+
+    def get_daily(self):
+        return self._useDaily
+
     def get_username(self) -> str:
         return self._username
     
@@ -68,7 +82,7 @@ class User:
 
     
 
-
+sounds = {sound:sounds_data[sound] for sound in sounds_data}
 answers = {answer:answers_data[answer] for answer in answers_data}
 
 users = {

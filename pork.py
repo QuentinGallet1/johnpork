@@ -1,9 +1,13 @@
 import os
-from dotenv import load_dotenv
-from discord.ext import commands, tasks
-from load_json import *
+from datetime import date
+
 import yt_dlp as youtube_dl
+from discord.ext import commands, tasks
+from dotenv import load_dotenv
+
 from Games import *
+from load_json import *
+
 # https://discordpy.readthedocs.io/en/stable/ext/commands/api.html#bots
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Message
 
@@ -73,8 +77,9 @@ async def on_message(message):
     print(f"message guild :  {message.guild}")
     if not message.author.bot and message.guild is not None:
         user = get_user_from_id(message.author.id)
-        if message.channel.id == channels["daily"]:
+        if message.channel.id == channels["daily"] and user.get_daily() != date.today():
             give_money(user, message,True)
+            user.use_daily(date.today())
             print("give daily_reward")
         else :
             give_money(user, message)
@@ -191,17 +196,21 @@ async def play_next(ctx):
         if audio_file is None:
             await ctx.send("A pas marché, choisis de meilleures musiques ptet ? ")
             continue
+        if voice_client is None or not voice_client.is_connected():
+            await ctx.send("Bot pas connecté au voc")
+            is_playing = False
+            return
         if voice_client.is_playing():
             voice_client.stop()
         try:
             voice_client.play(discord.FFmpegPCMAudio(audio_file), after=lambda e: bot.loop.call_soon_threadsafe(asyncio.create_task, play_next(ctx)))
-            await ctx.send(f'Pas ouf la musique mais vzy tu me fais pitié : {url}')
-            while voice_client.is_playing():
+            while voice_client is not None and voice_client.is_connected() and voice_client.is_playing():
                 await asyncio.sleep(1)
         except Exception as e:
             await ctx.send(f"A pas marché, choisis de meilleures musiques ptet ?: {e}")
             print(f"Playback error: {e}")
     is_playing = False
+
 
 @bot.command()
 async def play(ctx, url: str):
@@ -253,7 +262,6 @@ async def stp_argent(ctx):
     user = get_user_from_id(ctx.author.id)
     if user is not None and user.get_porklards() < 0:
         user.add_porklards(- user.get_porklards()) """
-
 @bot.command(aliases=['s'])
 async def shop(ctx):
 
@@ -261,11 +269,15 @@ async def shop(ctx):
         title="Porkshop",
     )
     embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 5 prochains tirages (ne stack pas)", inline=False)
+    embed.add_field(name="1019 📨", value="Discute avec john pork", inline=False)
+    embed.add_field(name="5001 📃", value="Apprend quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
     await msg.add_reaction('🍀')
-    
+    await msg.add_reaction('📨')
+    await msg.add_reaction('📃')
+
     def check(reaction, user):
-        return str(reaction.emoji) in ['🍀'] and reaction.message.id == msg.id and not user.bot
+        return str(reaction.emoji) in ['🍀','📃','📨'] and reaction.message.id == msg.id and not user.bot
     
     try:
         reaction, user = await bot.wait_for('reaction_add', timeout=300, check=check)
@@ -281,6 +293,36 @@ async def shop(ctx):
         else:
             user.add_porklards(-200)
             user.set_enhanced_gambles(5)
+    if reaction ==  '📨':
+        if user.get_porklards() < 1019:
+            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+        else:
+            user.add_porklards(-1019)
+            await ctx.author.send("Dis moi ce que tu veux que je dise dans le général'")
+            def check(m):
+                return m.author == ctx.author and m.guild is None
+
+            try:
+                message = await bot.wait_for('message', timeout=30.0, check=check)
+                await ctx.channel.send(message.content)
+            except asyncio.TimeoutError:
+                await ctx.send("Trop lent, annulé !")
+                user.add_porklards(1000)
+    if reaction == '📃':
+        if user.get_porklards() < 5001:
+            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+        else:
+            user.add_porklards(-5001)
+            await ctx.author.send("Dis moi ce que tu veux que j'apprenne'")
+            def check(m):
+                return m.author == ctx.author and m.guild is None
+
+            try:
+                message = await bot.wait_for('message', timeout=30.0, check=check)
+                add_data(message.content,message.content, "answers.json")
+            except asyncio.TimeoutError:
+                await ctx.send("Trop lent, annulé !")
+                user.add_porklards(1000)
 
 
 @bot.command(aliases=['c','lb'])
@@ -371,9 +413,21 @@ async def clearclassement(ctx):
 #endregion
 @bot.command()
 async def call(ctx):
+    global voice_client
     if ctx.author.voice:
         channel = ctx.author.voice.channel
-        await channel.connect()
+        if voice_client is None or voice_client.channel != channel:
+            voice_client = await channel.connect()
+        if sounds:
+            first_sound_url = list(sounds.values())[0]
+            await song_queue.put(first_sound_url)
+            if not is_playing:
+                bot.loop.create_task(play_next(ctx))
+        else:
+            await ctx.send("Aucun son disponible")
+    else:
+        await ctx.send("Tu dois être dans un voc")
+
 
 def give_money(user: User, message: discord.Message,isDaily = False):
     if len(message.content) > 1 and user.get_previous_message() != message.content:

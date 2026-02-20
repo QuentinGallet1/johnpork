@@ -178,6 +178,10 @@ async def DisplayCard(hand):
 async def CheckResult(currentHand,opponentHand):
     curHand = await CalculateHand(currentHand)
     oppHand = await CalculateHand(opponentHand)
+    if len(currentHand) == 2 and curHand == 21:
+        return 4
+    if len(opponentHand) == 2 and opponentHand == 21:
+        return 3
     if curHand > 21:
         return 0
     elif oppHand > 21:
@@ -237,16 +241,26 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
             return
 
     gain = 0
+    #simple loose
     if result == 0:
         gain = -amount
         result = "perdu"
+    #simple win
     elif result == 1:
         gain = amount
         result = "gagné"
+    #draw
     elif result == 2:
         result = "gagné"
+    #jp blackjack
+    elif result == 3:
+        gain = -(amount*2)
+        result = "perdu"
+    elif result == 4:
+        gain = amount*2
+        result = "blackjack bg"
     
     currentuser.add_porklards(gain)
 
-    await ctx.channel.send("tu as " +str(await CalculateHand(currentHand))+ " et John Pork a "+ str(await CalculateHand(opposantHand))+ " donc tu as "  + result + " " + str(abs(gain)))
+    await ctx.channel.send(f"tu as {str(await CalculateHand(currentHand))} et John Pork a {str(await CalculateHand(opposantHand))} donc tu as {result} {str(abs(gain))} porklards, tu as maintenant {currentuser.get_porklards()} porklards en tout" )
 #endregion
