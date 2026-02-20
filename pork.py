@@ -298,7 +298,7 @@ async def shop(ctx):
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         else:
             user.add_porklards(-1019)
-            await ctx.author.send("Dis moi ce que tu veux que je dise dans le général'")
+            await ctx.author.send("Dis moi ce que tu veux que je dise dans le général")
             def check(m):
                 return m.author == ctx.author and m.guild is None
 
