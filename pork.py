@@ -304,7 +304,9 @@ async def shop(ctx):
 
             try:
                 message = await bot.wait_for('message', timeout=30.0, check=check)
-                await ctx.channel.send(message.content)
+                general = discord.utils.get(ctx.guild.text_channels, id=channels["general"]) 
+                if general: 
+                    await general.send(message.content)
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
                 user.add_porklards(1000)
