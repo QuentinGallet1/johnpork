@@ -152,20 +152,19 @@ async def drawCard(deck,hand,ctx,embed,currentuser,isPlayer = True):
 
 async def CalculateHand(cards):
     totalValue = 0
-    haveAs = False
+    aces = 0
     for card in cards:
         if card[0] == 'J' or card[0] == 'Q' or card[0] == 'K':
             totalValue += 10
         elif card[0] == 'A':
-            if totalValue > 10:
-                totalValue += 1
-            else:
-                totalValue += 11
-            haveAs = True
+            totalValue += 11
+            aces += 1
         else:
             totalValue += int(card[:-1])
-    if totalValue > 21 and  haveAs:
+
+    while totalValue > 21 and aces > 0:
         totalValue -= 10
+        aces -= 1
     return totalValue
 
 async def DisplayCard(hand):
@@ -231,13 +230,13 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
                 result = await CheckResult(currentHand,opposantHand)
                 isPlaying = result != 0
             elif str(reaction.emoji) == '↔️':
-                while int(await CalculateHand(opposantHand)) <17:
+                while int(await CalculateHand(opposantHand)) < 17:
                     await drawCard(cartes,opposantHand,ctx,embed,currentuser,False)
                 result = await CheckResult(currentHand,opposantHand)
                 isPlaying = False
 
-        except TimeoutError:
-            await context.channel.send("Temps écoulé !")
+        except asyncio.TimeoutError:
+            await context.channel.send("Branle ton oncle j'ai pas ton temps et j'ai quand meme pris ta thune")
             return
 
     gain = 0
