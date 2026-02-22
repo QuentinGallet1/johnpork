@@ -180,7 +180,7 @@ async def CheckResult(currentHand,opponentHand):
     oppHand = await CalculateHand(opponentHand)
     if len(currentHand) == 2 and curHand == 21:
         return 4
-    if len(opponentHand) == 2 and opponentHand == 21:
+    if len(opponentHand) == 2 and oppHand == 21:
         return 3
     if curHand > 21:
         return 0
@@ -251,16 +251,15 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
         result = "gagné"
     #draw
     elif result == 2:
-        result = "gagné"
+        result = "égalisé un dieu mais bon tu gagnes"
     #jp blackjack
     elif result == 3:
         gain = -(amount*2)
-        result = "perdu"
+        result = "perdu car dans la manche de jp ce cache un cinquième ace donc tu perds"
     elif result == 4:
         gain = amount*2
-        result = "blackjack bg"
+        result = "blackjack bg donc tu gagnes"
     
     currentuser.add_porklards(gain)
-
     await ctx.channel.send(f"tu as {str(await CalculateHand(currentHand))} et John Pork a {str(await CalculateHand(opposantHand))} donc tu as {result} {str(abs(gain))} porklards, tu as maintenant {currentuser.get_porklards()} porklards en tout" )
 #endregion
