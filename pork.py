@@ -77,7 +77,7 @@ async def on_message(message):
     print(f"message guild :  {message.guild}")
     if not message.author.bot and message.guild is not None:
         user = get_user_from_id(message.author.id)
-        if message.channel.id == channels["daily"] and user.get_daily() != date.today():
+        if message.channel.id == channels["daily"] and user.get_daily() != date.today() or user.get_daily() == 0:
             give_money(user, message,True)
             user.use_daily(date.today())
             print("give daily_reward")

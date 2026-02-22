@@ -26,6 +26,7 @@ class User:
         self._porklards = porklards
         self._previous_message = ""
         self._enhanced_gambles = 0
+        self._useDaily = 0
 
     def __str__(self):
         return f'Name : {self._username} , Id : {self._id}'
@@ -37,6 +38,7 @@ class User:
         self._useDaily = current_daily
 
     def get_daily(self):
+        print(f"current daily =>{self._useDaily}")
         return self._useDaily
 
     def get_username(self) -> str:
