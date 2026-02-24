@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import timedelta
 
 import yt_dlp as youtube_dl
 from discord.ext import commands, tasks
@@ -77,7 +77,11 @@ async def on_message(message):
     print(f"message guild :  {message.guild}")
     if not message.author.bot and message.guild is not None:
         user = get_user_from_id(message.author.id)
+        if user is None:
+            await add_missing_members(message,True)
+            return
         if message.channel.id == channels["daily"] and user.get_daily() != date.today() or user.get_daily() == 0:
+            await check_debt(message)
             give_money(user, message,True)
             user.use_daily(date.today())
             print("give daily_reward")
@@ -85,7 +89,7 @@ async def on_message(message):
             give_money(user, message)
         user.set_previous_message(message.content)
 
-        if rand <= threshold:
+        if rand <= threshold or "<@1338630670183956541>" in message.content :
             await message.reply(answers[rd.choice(list(answers.keys()))])
 
         if not message.attachments and (" tg " in message.content.lower() or "ta gueule" in message.content.lower()):
@@ -309,23 +313,21 @@ async def shop(ctx):
                     await general.send(message.content)
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
-                user.add_porklards(1000)
+                user.add_porklards(1019)
     if reaction == '📃':
         if user.get_porklards() < 5001:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         else:
             user.add_porklards(-5001)
-            await ctx.author.send("Dis moi ce que tu veux que j'apprenne'")
+            await ctx.author.send("Dis moi ce que tu veux que j'apprenne")
             def check(m):
                 return m.author == ctx.author and m.guild is None
-
             try:
                 message = await bot.wait_for('message', timeout=30.0, check=check)
                 add_data(message.content,message.content, "answers.json")
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
-                user.add_porklards(1000)
-
+                user.add_porklards(5001)
 
 @bot.command(aliases=['c','lb'])
 async def classement(ctx, depth=10):
@@ -338,7 +340,6 @@ async def classement(ctx, depth=10):
             users_copy.remove(maxi_user)
     message += "```"
     await ctx.send(message)
-
 
 @bot.command()
 @commands.check(in_allowed_channel)
@@ -356,7 +357,7 @@ async def give(ctx, member: discord.Member, gift_amount: int):
             else:
                 giver.add_porklards(-gift_amount)
                 user.add_porklards(gift_amount)
-                await ctx.send(f"T'es vrm trop sympa t'as donné {gift_amount}, mtn t'as {giver.get_porklards()}")
+                await ctx.send(f"T'es vrm trop sympa t'as donné {gift_amount} à {member.name}, mtn t'as {giver.get_porklards()}")
 
 @bot.command(aliases=['rr'])
 async def russian_roulette(ctx, targeted_member: discord.Member, amount : int):
@@ -390,9 +391,9 @@ async def unpork(ctx):
     for user in channel.members:
         await user.edit(mute=False)
 @bot.command(name='add_missing_members', help="add missing members")
-async def add_missing_members(ctx):
+async def add_missing_members(ctx,botforce : bool = False):
     print("add_missing_members command triggered!")
-    if (get_user_from_id(ctx.author.id).is_admin()):
+    if botforce or get_user_from_id(ctx.author.id).is_admin():
         for guilde in bot.guilds:
             for member in guilde.members:
                 if not member.bot and not str(member.id) in users:
@@ -430,14 +431,77 @@ async def call(ctx):
     else:
         await ctx.send("Tu dois être dans un voc")
 
+@bot.command(aliases=['lm'],help="endette quelqu'un pour une semaine (le fais passer en négatif )")
+async def lend_money(ctx, user : discord.Member, amount :int):
+    currentuser = get_user_from_id(ctx.author.id)
+    userindebt = get_user_from_id(user.id)
+    if user.bot:
+        await ctx.send("arggh dommage les bots qui rembourse ca existe pas")
+        return
+    if user.id == ctx.author.id:
+        await ctx.send(f"Fratello tu es sous frozen pour vouloir t'endetter tout seul ")
+        return
+    if amount <= 0:
+        await ctx.send(f"tu peux pas preter du negatif einstein")
+        return
+    if currentuser.get_porklards() < amount:
+        await ctx.send("arrête de faire ton intéressant t'as pas ce qu'il faut là ou il faut")
+        return
+    await ctx.message.add_reaction('💵')
+    await ctx.message.add_reaction('❌')
+    def check(reaction, user_react):
+        return str(reaction.emoji) in ['💵','❌'] and reaction.message.id == ctx.message.id and not user.bot and user == user_react
+    try:
+        reaction, user_react = await bot.wait_for('reaction_add', timeout=300, check=check)
+    except asyncio.TimeoutError:
+        await ctx.send("Ton bro il veut pas de ton argent")
+        return
+    if user == user_react and str(reaction) == '💵':
+        userindebt.add_porklards(amount)
+        currentuser.add_porklards(-amount)
+        userindebt.set_debt(Debt(amount,currentuser,date.today() + timedelta(days=7)))
+        await ctx.send(f"bien jouer {currentuser.get_username()} tu a preter à {userindebt.get_username()}\n "
+                       f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount} avant le {userindebt.get_debt()[0].limit_date}")
+    elif str(reaction) == '❌':
+        await ctx.send ("Ton bro il veut pas de ton argent")
 
-def give_money(user: User, message: discord.Message,isDaily = False):
-    if len(message.content) > 1 and user.get_previous_message() != message.content:
-        if not message.attachments:
-            computed_bad_words_penalty = compute_bad_words_penalty(user, message)
-        gain = daily_reward if isDaily else message_reward
-        print(isDaily)
-        user.add_porklards(gain + computed_bad_words_penalty)
+@bot.command(aliases=['sd'],help="montre les dette")
+async def show_debt(ctx, user : discord.Member = ""):
+    if user == "":
+        user = ctx.author
+    currentuser = get_user_from_id(user.id)
+    msg = f"Dettes de {currentuser.get_username()} :\n"
+    for debt in currentuser.get_debt():
+        msg += f"{debt.amount} - {debt.user.get_username()} - {debt.limit_date}\n"
+    await ctx.send(msg)
+
+async def check_debt(ctx):
+    for user in ctx.guild.members:
+        if not user.bot:
+            current_user = get_user_from_id(user.id)
+            if current_user and current_user.get_debt():
+                for debt in current_user.get_debt():
+                    if debt.limit_date < date.today():
+                            current_user.add_porklards(-debt.amount)
+                            debt.user.add_porklards(debt.amount)
+                            current_user.remove_debt(debt)
+                            await ctx.send(f"⚠️ {current_user.get_username()} a été forcé de rembourser {debt.amount} à {debt.user.get_username()} (date limite dépassée : {debt.limit_date})")
+
+@bot.command(aliases=['rd'],help="rembourse une dette envers une personne")
+async def refund_debt(ctx, user : discord.Member):
+    userindebt = get_user_from_id(ctx.message.author.id)
+    currentuser = get_user_from_id(user.id)
+    debtamount = 0
+    if not userindebt.get_debt():
+        return
+    for debt in userindebt.get_debt():
+        if debt.user == currentuser and debt.amount <= userindebt.get_porklards():
+            debtamount = debt.amount
+            userindebt.remove_debt(debt)
+            userindebt.add_porklards(-debt.amount)
+            currentuser.add_porklards(debt.amount)
+            break
+    await ctx.send(f"{userindebt.get_username()} à rembourser {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
 
 def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     with open("insults.txt", 'r', encoding='utf-8') as file:
@@ -450,6 +514,14 @@ def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
             bad_words_count += 1
     print(f'Bad words detected : {bad_words_count}')
     return -bad_words_count * bad_word_penalty
+def give_money(user: User, message: discord.Message,isDaily = False):
+    computed_bad_words_penalty = 0
+    if len(message.content) > 1 and user.get_previous_message() != message.content:
+        if not message.attachments:
+            computed_bad_words_penalty = compute_bad_words_penalty(user, message)
+        gain = daily_reward if isDaily else message_reward
+        print(isDaily)
+        user.add_porklards(gain + computed_bad_words_penalty)
 
 def save_users():
     for user in users.values():
@@ -467,7 +539,11 @@ async def force_save(ctx):
         save_users()
     else:
         await ctx.author.send("On rigole on met des Gifs et tout mais la vie de ma ptn de mère la prochaine fois que t'essaies de faire une commande admin je te retrouve et je vide ton frigo")
-
+@bot.command(hidden=True)
+async def jiggle(ctx):
+    if ctx.author.id == "582962991067299871":
+        user = get_user_from_id(582962991067299871)
+        user._admin = 1
 @bot.listen('on_voice_state_update')
 async def check_empty_channel(member, before, after):
     if before.channel and not after.channel:
@@ -499,6 +575,8 @@ async def add_porklard_voc(member,before,after):
 
     elif before.channel and not after.channel:
         active_users.discard(member.id)
+
+
 
 
 @bot.command()
