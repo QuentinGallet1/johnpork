@@ -234,6 +234,11 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
                     await drawCard(cartes,opposantHand,ctx,embed,currentuser,False)
                 result = await CheckResult(currentHand,opposantHand)
                 isPlaying = False
+            if int(await CalculateHand(currentHand)) == 21:
+                while int(await CalculateHand(opposantHand)) < 17:
+                    await drawCard(cartes,opposantHand,ctx,embed,currentuser,False)
+                result = await CheckResult(currentHand,opposantHand)
+                isPlaying = False
 
         except asyncio.TimeoutError:
             await context.channel.send("Branle ton oncle j'ai pas ton temps et j'ai quand meme pris ta thune")
