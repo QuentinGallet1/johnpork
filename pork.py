@@ -288,6 +288,7 @@ async def shop(ctx):
 
     except asyncio.TimeoutError:
         await ctx.send("shop fermé j'ai pas que ça à foutre")
+        return
     
     user = get_user_from_id(user.id)
     reaction = str(reaction.emoji)
@@ -328,6 +329,7 @@ async def shop(ctx):
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
                 user.add_porklards(5001)
+    await ctx.send("Profite de ton achat et capitalise un max")
 
 @bot.command(aliases=['c','lb'])
 async def classement(ctx, depth=10):
