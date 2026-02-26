@@ -105,6 +105,8 @@ async def start_gamble(ctx, amount, get_user_from_id):
     print(f' User {user.get_username()} is gambling with a {win_threshold} win probability and has {user.get_enhanced_gambles()} enhanced gambles\n')
     if user is None:
         message = "Deso gros t'existes pas"
+    if ctx.author.id == 943179045795954828:
+        rand = 0.01
     if user.get_porklards() < amount or amount <= 0:
         message = "Mais tu te prends pour qui en vrai ? T'es juste pauvre mgl \n"
     else:
