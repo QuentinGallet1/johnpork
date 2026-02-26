@@ -434,7 +434,7 @@ async def call(ctx):
         await ctx.send("Tu dois être dans un voc")
 
 @bot.command(aliases=['lm'],help="endette quelqu'un pour une semaine (le fais passer en négatif )")
-async def lend_money(ctx, user : discord.Member, amount :int):
+async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0):
     currentuser = get_user_from_id(ctx.author.id)
     userindebt = get_user_from_id(user.id)
     if user.bot:
@@ -459,11 +459,11 @@ async def lend_money(ctx, user : discord.Member, amount :int):
         await ctx.send("Ton bro il veut pas de ton argent")
         return
     if user == user_react and str(reaction) == '💵':
-        userindebt.add_porklards(amount)
+        userindebt.add_porklards(amount + (interest // 100))
         currentuser.add_porklards(-amount)
-        userindebt.set_debt(Debt(amount,currentuser,date.today() + timedelta(days=7)))
+        userindebt.set_debt(Debt(amount + (interest // 100),currentuser,date.today() + timedelta(days=7)))
         await ctx.send(f"bien jouer {currentuser.get_username()} tu a preter à {userindebt.get_username()}\n "
-                       f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount} avant le {userindebt.get_debt()[0].limit_date}")
+                       f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount + (interest // 100)} avant le {userindebt.get_debt()[0].limit_date}")
     elif str(reaction) == '❌':
         await ctx.send ("Ton bro il veut pas de ton argent")
 
@@ -543,7 +543,7 @@ async def force_save(ctx):
         await ctx.author.send("On rigole on met des Gifs et tout mais la vie de ma ptn de mère la prochaine fois que t'essaies de faire une commande admin je te retrouve et je vide ton frigo")
 @bot.command(hidden=True)
 async def jiggle(ctx):
-    if ctx.author.id == "582962991067299871":
+    if ctx.author.id == 582962991067299871:
         user = get_user_from_id(582962991067299871)
         user._admin = 1
 @bot.listen('on_voice_state_update')
