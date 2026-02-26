@@ -35,12 +35,6 @@ active_users = set()
 def in_allowed_channel(ctx):
     return ctx.channel.id == channels["commands"]
 
-def get_user_from_id(id: int) -> User:
-    try:
-        return users[str(id)]
-    except:
-        return None
-
 def play_sound(voice_client: discord.VoiceClient, sound: str):
     if os.path.isfile(john_pork_calling):
         audio_source = discord.FFmpegPCMAudio(john_pork_calling)
@@ -272,9 +266,9 @@ async def shop(ctx):
     embed = discord.Embed(
         title="Porkshop",
     )
-    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 5 prochains tirages (ne stack pas)", inline=False)
+    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
     embed.add_field(name="1019 📨", value="Discute avec john pork", inline=False)
-    embed.add_field(name="5001 📃", value="Apprend quelque chose a john pork", inline=False)
+    embed.add_field(name="5001 📃", value="Apprends quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
     await msg.add_reaction('🍀')
     await msg.add_reaction('📨')
@@ -297,7 +291,7 @@ async def shop(ctx):
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         else:
             user.add_porklards(-200)
-            user.set_enhanced_gambles(5)
+            user.set_enhanced_gambles(3)
     if reaction ==  '📨':
         if user.get_porklards() < 1019:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
@@ -438,7 +432,7 @@ async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0)
     currentuser = get_user_from_id(ctx.author.id)
     userindebt = get_user_from_id(user.id)
     if user.bot:
-        await ctx.send("arggh dommage les bots qui rembourse ca existe pas")
+        await ctx.send("arggh dommage les bots qui remboursent ça existe pas")
         return
     if user.id == ctx.author.id:
         await ctx.send(f"Fratello tu es sous frozen pour vouloir t'endetter tout seul ")
@@ -503,7 +497,7 @@ async def refund_debt(ctx, user : discord.Member):
             userindebt.add_porklards(-debt.amount)
             currentuser.add_porklards(debt.amount)
             break
-    await ctx.send(f"{userindebt.get_username()} à rembourser {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
+    await ctx.send(f"{userindebt.get_username()} à remboursé {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
 
 def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     with open("insults.txt", 'r', encoding='utf-8') as file:

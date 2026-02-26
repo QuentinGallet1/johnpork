@@ -91,7 +91,8 @@ class User:
             "debts": [
                 {
                     "amount": debt.amount,
-                    "limit_date": str(debt.limit_date)
+                    "limit_date": str(debt.limit_date),
+                    "user": debt.user.get_id()
                 }
                 for debt in self.debt
             ]
@@ -106,6 +107,14 @@ class Debt:
 
     def check_date(self,date : date):
         return date == self._limit_date
+
+
+def get_user_from_id(id: int) -> User:
+    try:
+        return users[str(id)]
+    except:
+        return None
+
 
 sounds = {sound:sounds_data[sound] for sound in sounds_data}
 answers = {answer:answers_data[answer] for answer in answers_data}
@@ -128,13 +137,14 @@ for user_name, user_data in users_data.items():
         for debt_data in debts:
             debt = Debt(
                 _amount=debt_data["amount"],
-                _user=user,
+                _user=get_user_from_id(int(debt_data["user"])),
                 _limit_date=date.fromisoformat(debt_data["limit_date"])
             )
             user.set_debt(debt)
 
 
 channels = {channel:int(channels_data[channel]) for channel in channels_data}
+
 
 
 
