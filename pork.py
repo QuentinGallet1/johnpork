@@ -35,6 +35,12 @@ active_users = set()
 def in_allowed_channel(ctx):
     return ctx.channel.id == channels["commands"]
 
+def get_user_from_id(id: int) -> User:
+    try:
+        return users[str(id)]
+    except:
+        return None
+
 def play_sound(voice_client: discord.VoiceClient, sound: str):
     if os.path.isfile(john_pork_calling):
         audio_source = discord.FFmpegPCMAudio(john_pork_calling)
@@ -63,7 +69,7 @@ async def on_message(message):
     rand = rd.random()
     threshold = 0.025  # once every 40 messages
 
-    if not message.attachments and message.content[0] in ['!', ',', '/']:
+    if not message.attachments and message.content and message.content[0] in ['!', ',', '/']:
         print('Processing command')
         await bot.process_commands(message)  # Allow command processing
         return
@@ -161,7 +167,7 @@ async def on_member_join(member):
         print(f'Member {member.name} joined the server')
 #endregion
 
-
+#region Music
 def get_audio_source(url):
     ydl_opts = {
         'format': 'bestaudio',
@@ -209,7 +215,6 @@ async def play_next(ctx):
             print(f"Playback error: {e}")
     is_playing = False
 
-
 @bot.command()
 async def play(ctx, url: str):
     global voice_client
@@ -244,6 +249,7 @@ async def stop(ctx):
     else:
         await ctx.send('Jsuis pas dans un voc mon reuf')
 
+#endregion
 @bot.command(aliases=['p'])
 @commands.check(in_allowed_channel)
 async def porklards(ctx, member: discord.Member = None):
@@ -266,9 +272,9 @@ async def shop(ctx):
     embed = discord.Embed(
         title="Porkshop",
     )
-    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
+    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 5 prochains tirages (ne stack pas)", inline=False)
     embed.add_field(name="1019 📨", value="Discute avec john pork", inline=False)
-    embed.add_field(name="5001 📃", value="Apprends quelque chose a john pork", inline=False)
+    embed.add_field(name="5001 📃", value="Apprend quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
     await msg.add_reaction('🍀')
     await msg.add_reaction('📨')
@@ -291,7 +297,7 @@ async def shop(ctx):
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         else:
             user.add_porklards(-200)
-            user.set_enhanced_gambles(3)
+            user.set_enhanced_gambles(5)
     if reaction ==  '📨':
         if user.get_porklards() < 1019:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
@@ -367,6 +373,25 @@ async def gamble(ctx, amount=10):
 @bot.command(aliases=['bj'],help="play blackjack")
 async def blackjack(ctx, amount : int = 10):
     await playBJ(ctx, amount,bot,get_user_from_id)
+
+#region Race
+@bot.command(aliases=['Rjt'],help="Rejoint une équipe, la créer si elle n'existe pas")
+async def join_team(ctx, teamName : str):
+    await Join_Team(ctx, teamName)
+
+@bot.command(aliases=['Rsr'],help="Start race")
+async def start_race(ctx, amount : int = 10):
+    await Start_Race(ctx,amount,get_user_from_id)
+
+@bot.command(aliases=['Rst'],help="montre les équipe ainsi que les pilotes")
+async def show_team(ctx):
+    await Show_Team(ctx)
+
+@bot.command(aliases=['Rbc'],help="achète une voiture")
+async def buy_car(ctx):
+    await Buy_Car(ctx)
+#endregion
+
 #region Admin Command
 @bot.command()
 async def pork(ctx):
@@ -432,7 +457,7 @@ async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0)
     currentuser = get_user_from_id(ctx.author.id)
     userindebt = get_user_from_id(user.id)
     if user.bot:
-        await ctx.send("arggh dommage les bots qui remboursent ça existe pas")
+        await ctx.send("arggh dommage les bots qui rembourse ca existe pas")
         return
     if user.id == ctx.author.id:
         await ctx.send(f"Fratello tu es sous frozen pour vouloir t'endetter tout seul ")
@@ -453,11 +478,12 @@ async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0)
         await ctx.send("Ton bro il veut pas de ton argent")
         return
     if user == user_react and str(reaction) == '💵':
-        userindebt.add_porklards(amount + (interest // 100))
+        interest_amount = amount * interest // 100
+        userindebt.add_porklards(amount + interest_amount)
         currentuser.add_porklards(-amount)
-        userindebt.set_debt(Debt(amount + (interest // 100),currentuser,date.today() + timedelta(days=7)))
+        userindebt.set_debt(Debt(amount + interest_amount, currentuser, date.today() + timedelta(days=7)))
         await ctx.send(f"bien jouer {currentuser.get_username()} tu a preter à {userindebt.get_username()}\n "
-                       f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount + (interest // 100)} avant le {userindebt.get_debt()[0].limit_date}")
+               f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount + interest_amount} avant le {userindebt.get_debt()[0].limit_date}")
     elif str(reaction) == '❌':
         await ctx.send ("Ton bro il veut pas de ton argent")
 
@@ -497,7 +523,7 @@ async def refund_debt(ctx, user : discord.Member):
             userindebt.add_porklards(-debt.amount)
             currentuser.add_porklards(debt.amount)
             break
-    await ctx.send(f"{userindebt.get_username()} à remboursé {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
+    await ctx.send(f"{userindebt.get_username()} à rembourser {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
 
 def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     with open("insults.txt", 'r', encoding='utf-8') as file:
