@@ -2,6 +2,7 @@
 import random as rd
 
 import discord
+from discord import Member
 
 import load_json
 
@@ -288,8 +289,7 @@ class Stats:
         self.maniability = maniabilite
         self.durability = dura
 
-    def repair(self):
-        self.durability = 100
+
 
 class Car:
     def __init__(self, model: str, _stats: Stats, sprite: str):
@@ -298,11 +298,13 @@ class Car:
         self._sprite = sprite
 
     def calcul_percent_stat(self) -> float:
-        return (self.stats.speed + self.stats.acceleration + self.stats.maniability)*GetPercent(self.stats.durability)
+        return round((self.stats.speed + self.stats.acceleration + self.stats.maniability)*GetPercent(self.stats.durability),2)
 
     def add_damage(self,amount : int):
         self.stats.durability -= amount
 
+    def repair(self):
+        self.stats.durability = 100
 class RaceTeam:
     def __init__(self, teamname: str, teampoint: int = 0):
         self.name = teamname
@@ -357,11 +359,12 @@ async def Show_Team(ctx):
                 pilot_in_team += safe_name + "\n"
         embed.add_field(name="**__" + team.name.upper() + "__**: ", value=pilot_in_team, inline=False)
     await ctx.send(embed=embed)
-async def Create_Pilot(ctx):
-    Pilot(ctx.author.name, ctx.author.id)
+async def Create_Pilot(member : Member):
+    Pilot(member.name, member.id)
     print("pilot created")
 
-
+async def GetPilot(user_id) -> Pilot | None:
+    return get_pilot_by_id(user_id)
 #region Save and Load
 def LoadRaceGame():
     race_data_raw = load_json.load_data("race.json")
@@ -414,18 +417,44 @@ async def SaveRaceGame():
 LoadRaceGame()
 #endregion
 
-async def Buy_Car(ctx):
-    if not get_pilot_by_id(ctx.author.id):
-        await Create_Pilot(ctx)
-    get_pilot_by_id(ctx.author.id).add_current_car(Car("voiture de base", Stats(),"aucun"))
+async def Buy_Car(ctx,member):
+    if not get_pilot_by_id(id):
+        await Create_Pilot(member)
+    get_pilot_by_id(member.id).add_current_car(Car("voiture de base", Stats(),"aucun"))
+    await ctx.send(f"Bien joué {member.name} tu as enfin une voiture")
     await SaveRaceGame()
 
-async def GivePorklard(pilots,get_user_from_id):
-    for pilot in pilots:
+async def GivePorklard(p_pilots,get_user_from_id):
+    pos = 0
+    p_pilots.reverse()
+    for pilot in p_pilots:
         user = get_user_from_id(pilot._id)
-        print(pilots.index(pilot))
+        if user:
+            user.add_porklards(pos*10)
+        pos += 1
+        print(f"{pilots.index(pilot)} receive {pos *10}")
 
-async def Start_Race(ctx, amount,get_user_from_id):
+async def ShowResult(msg,embed,cur_circuit,list_pilots):
+    embed.clear_fields()
+    pos = 1
+    for pilot in list_pilots:
+        if pos == 1:
+            display_pos = ":trophy: 1er"
+        elif pos == 2:
+            display_pos = ":second_place: 2ème"
+        elif pos == 3:
+            display_pos = ":third_place: 3ème"
+        else:
+            display_pos = f"{pos}ème"
+        embed.add_field(
+            name=f"\n{display_pos}\n",
+            value=f"{discord.utils.escape_markdown(pilot.name)}",
+            inline=False
+        )
+        pos += 1
+    await msg.edit(embed=embed)
+
+async def Start_Race(ctx,get_user_from_id):
         cur_circuit = rd.choice(circuits)
         all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car]
         if not all_pilot_in_race:
@@ -457,7 +486,6 @@ async def Start_Race(ctx, amount,get_user_from_id):
                 )
                 if rd.random() < proba_damage:
                     pilot.current_car.add_damage(rd.randrange(1, 10))
-                    print("add damage on car")
 
             previous_order = list(all_pilot_in_race)
 
@@ -467,6 +495,7 @@ async def Start_Race(ctx, amount,get_user_from_id):
                 await msg.edit(embed=embed)
             turn += 1
             await asyncio.sleep(1)
+        await ShowResult(msg,embed,cur_circuit,all_pilot_in_race)
         await GivePorklard(all_pilot_in_race,get_user_from_id)
         await SaveRaceGame()
 

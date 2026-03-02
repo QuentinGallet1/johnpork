@@ -1,28 +1,3 @@
 {
-    "__loh__": {
-        "id": 582962991067299871,
-        "teamname": "caca",
-        "current_points": 0,
-        "current_car": {
-            "model": "voiture de base",
-            "sprite": "aucun",
-            "vitesse": 1,
-            "acceleration": 1,
-            "maniability": 1,
-            "durability": 72
-        }
-    },
-    "pasparla": {
-        "id": 844787371546247229,
-        "teamname": "caca",
-        "current_points": 0,
-        "current_car": {
-            "model": "voiture de base",
-            "sprite": "aucun",
-            "vitesse": 1,
-            "acceleration": 1,
-            "maniability": 1,
-            "durability": 72
-        }
-    }
+
 }

@@ -295,12 +295,14 @@ async def shop(ctx):
     if reaction == '🍀':
         if user.get_porklards() < 200:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+            return
         else:
             user.add_porklards(-200)
             user.set_enhanced_gambles(5)
     if reaction ==  '📨':
         if user.get_porklards() < 1019:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+            return
         else:
             user.add_porklards(-1019)
             await ctx.author.send("Dis moi ce que tu veux que je dise dans le général")
@@ -318,6 +320,7 @@ async def shop(ctx):
     if reaction == '📃':
         if user.get_porklards() < 5001:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+            return
         else:
             user.add_porklards(-5001)
             await ctx.author.send("Dis moi ce que tu veux que j'apprenne")
@@ -380,16 +383,56 @@ async def join_team(ctx, teamName : str):
     await Join_Team(ctx, teamName)
 
 @bot.command(aliases=['Rsr'],help="Start race")
-async def start_race(ctx, amount : int = 10):
-    await Start_Race(ctx,amount,get_user_from_id)
+async def start_race(ctx):
+    await Start_Race(ctx,get_user_from_id)
 
 @bot.command(aliases=['Rst'],help="montre les équipe ainsi que les pilotes")
 async def show_team(ctx):
     await Show_Team(ctx)
 
-@bot.command(aliases=['Rbc'],help="achète une voiture")
-async def buy_car(ctx):
-    await Buy_Car(ctx)
+@bot.command(aliases=['Rs'],help="Magasin de sport automobile")
+async def race_shop(ctx):
+    embed = discord.Embed(
+        title="Porkshop",
+    )
+    embed.add_field(name="50 🔧 ", value="Répare ta voiture", inline=False)
+    embed.add_field(name="500 🏎️ ", value="Achète une voiture", inline=False)
+    msg = await ctx.send(embed=embed)
+    await msg.add_reaction('🔧')
+    await msg.add_reaction('🏎️')
+
+    def check(reaction, user):
+        return str(reaction.emoji) in ['🔧','🏎️'] and reaction.message.id == msg.id and not user.bot
+
+    try:
+        reaction, user = await bot.wait_for('reaction_add', timeout=300, check=check)
+
+    except asyncio.TimeoutError:
+        await ctx.send("shop fermé j'ai pas que ça à foutre")
+        return
+
+    user = get_user_from_id(user.id)
+    reaction = str(reaction.emoji)
+    pilot = await GetPilot(user._id)
+    if reaction == '🔧':
+        if user.get_porklards() < 50:
+            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+            return
+        else:
+            if pilot.current_car is None:
+                await ctx.send("Achète une voiture avant de la repare loser")
+            else :
+                pilot.current_car.repair()
+                user.add_porklards(-50)
+    if reaction ==  '🏎️':
+        if user.get_porklards() < 500:
+            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+            return
+        else:
+            user.add_porklards(-500)
+            await Buy_Car(ctx,ctx.author)
+    await ctx.send("Profite de ton achat et capitalise un max")
+
 #endregion
 
 #region Admin Command
