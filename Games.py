@@ -462,7 +462,7 @@ async def Start_Race(ctx,get_user_from_id):
             return
         race_started = True
         cur_circuit = rd.choice(circuits)
-        all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car and p.current_car.stats.duration > 0]
+        all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car and p.current_car.stats.durability > 0]
         if not all_pilot_in_race:
             await ctx.send("No pilot found")
             return
