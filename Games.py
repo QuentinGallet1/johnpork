@@ -279,6 +279,7 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
 circuits = ['Monza','Spa','Le Mans','Daytona','Monte-Carlo','Nürburgring','Laguna','Mount Panorama','Zolder','Paul Ricard']
 teams = []
 pilots = []
+race_started = False
 
 def GetPercent(value : int) -> float:
     return value/100
@@ -455,8 +456,10 @@ async def ShowResult(msg,embed,cur_circuit,list_pilots):
     await msg.edit(embed=embed)
 
 async def Start_Race(ctx,get_user_from_id):
+        if race_started :
+            await ctx.send("Impossible y'as déjà une course chef")
         cur_circuit = rd.choice(circuits)
-        all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car]
+        all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car and p.current_car.stats.duration > 0]
         if not all_pilot_in_race:
             await ctx.send("No pilot found")
             return
@@ -477,7 +480,7 @@ async def Start_Race(ctx,get_user_from_id):
             for pos, pilot in enumerate(all_pilot_in_race):
                 prev_pos = previous_order.index(pilot)
                 diff = prev_pos - pos
-                emoji = "🔼" if diff > 0 else ("🔽" if diff < 0 else "")
+                emoji = "🔼" if diff > 0 else ("🔽" if diff < 0 else "▶️")
 
                 embed.add_field(
                     name=f"\n{discord.utils.escape_markdown(pilot.name)} :\n",

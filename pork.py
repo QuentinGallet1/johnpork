@@ -393,7 +393,7 @@ async def show_team(ctx):
 @bot.command(aliases=['Rs'],help="Magasin de sport automobile")
 async def race_shop(ctx):
     embed = discord.Embed(
-        title="Porkshop",
+        title="Le Garage a JP",
     )
     embed.add_field(name="50 🔧 ", value="Répare ta voiture", inline=False)
     embed.add_field(name="500 🏎️ ", value="Achète une voiture", inline=False)
@@ -420,7 +420,7 @@ async def race_shop(ctx):
             return
         else:
             if pilot.current_car is None:
-                await ctx.send("Achète une voiture avant de la repare loser")
+                await ctx.send("Achète une voiture avant de la réparé loser")
             else :
                 pilot.current_car.repair()
                 user.add_porklards(-50)
@@ -431,7 +431,7 @@ async def race_shop(ctx):
         else:
             user.add_porklards(-500)
             await Buy_Car(ctx,ctx.author)
-    await ctx.send("Profite de ton achat et capitalise un max")
+    await ctx.send("Profite de ton achat et ressent le bitume")
 
 #endregion
 
