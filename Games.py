@@ -279,7 +279,6 @@ async def playBJ(context, amount : int ,bot,get_user_from_id):
 circuits = ['Monza','Spa','Le Mans','Daytona','Monte-Carlo','Nürburgring','Laguna','Mount Panorama','Zolder','Paul Ricard']
 teams = []
 pilots = []
-race_started = False
 
 def GetPercent(value : int) -> float:
     return value/100
@@ -455,9 +454,13 @@ async def ShowResult(msg,embed,cur_circuit,list_pilots):
         pos += 1
     await msg.edit(embed=embed)
 
+race_started = False
 async def Start_Race(ctx,get_user_from_id):
+        global race_started
         if race_started :
             await ctx.send("Impossible y'as déjà une course chef")
+            return
+        race_started = True
         cur_circuit = rd.choice(circuits)
         all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car and p.current_car.stats.duration > 0]
         if not all_pilot_in_race:
@@ -501,6 +504,7 @@ async def Start_Race(ctx,get_user_from_id):
         await ShowResult(msg,embed,cur_circuit,all_pilot_in_race)
         await GivePorklard(all_pilot_in_race,get_user_from_id)
         await SaveRaceGame()
+        race_started = False
 
 
 #endregion
