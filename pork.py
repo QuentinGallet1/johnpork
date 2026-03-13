@@ -272,7 +272,7 @@ async def shop(ctx):
     embed = discord.Embed(
         title="Porkshop",
     )
-    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 5 prochains tirages (ne stack pas)", inline=False)
+    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
     embed.add_field(name="1019 📨", value="Discute avec john pork", inline=False)
     embed.add_field(name="5001 📃", value="Apprend quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
@@ -298,7 +298,7 @@ async def shop(ctx):
             return
         else:
             user.add_porklards(-200)
-            user.set_enhanced_gambles(5)
+            user.set_enhanced_gambles(3)
     if reaction ==  '📨':
         if user.get_porklards() < 1019:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
