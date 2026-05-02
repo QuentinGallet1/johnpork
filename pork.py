@@ -496,7 +496,7 @@ async def call(ctx):
         await ctx.send("Tu dois être dans un voc")
 
 @bot.command(aliases=['lm'],help="endette quelqu'un pour une semaine (le fais passer en négatif )")
-async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0):
+async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 100):
     currentuser = get_user_from_id(ctx.author.id)
     userindebt = get_user_from_id(user.id)
     if user.bot:
@@ -507,6 +507,9 @@ async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0)
         return
     if amount <= 0:
         await ctx.send(f"tu peux pas preter du negatif einstein")
+        return
+    if interest < 0:
+        await ctx.send(f"glitch patch depuis la 1.6 sale bouffon")
         return
     if currentuser.get_porklards() < amount:
         await ctx.send("arrête de faire ton intéressant t'as pas ce qu'il faut là ou il faut")

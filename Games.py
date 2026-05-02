@@ -338,7 +338,7 @@ def get_pilot_by_id(id) -> Pilot | None:
 
 async def Join_Team(ctx, teamName):
     if get_pilot_by_id(ctx.author.id) is None:
-        await Create_Pilot(ctx)
+        await Create_Pilot(ctx.author)
     if not any(t.name == teamName for t in teams):
         newTeam = RaceTeam(teamName)
         teams.append(newTeam)
@@ -346,6 +346,15 @@ async def Join_Team(ctx, teamName):
     else:
         new_team = next(t for t in teams if t.name == teamName)
     get_pilot_by_id(ctx.author.id).add_team(new_team)
+    await ctx.send(f"Bravo tu rejoins l'équipe {new_team.name} mais c'est pas pour autant que tu seras bon au jeu.")
+
+async def Clear_Team():
+    temp_teams = []
+    for pilot in pilots:
+       if pilot.race_team.name in teams:
+           temp_teams.append(pilot)
+
+
 async def Show_Team(ctx):
     embed = discord.Embed(
         title="Équipes :",
@@ -357,7 +366,8 @@ async def Show_Team(ctx):
             if team == pilot.race_team:
                 safe_name = discord.utils.escape_markdown(pilot.name)
                 pilot_in_team += safe_name + "\n"
-        embed.add_field(name="**__" + team.name.upper() + "__**: ", value=pilot_in_team, inline=False)
+        embed.add_field(name="**__" + team.name + "__**: ", value=pilot_in_team, inline=False)
+
     await ctx.send(embed=embed)
 async def Create_Pilot(member : Member):
     Pilot(member.name, member.id)
@@ -377,6 +387,8 @@ def LoadRaceGame():
             team = next((t for t in teams if t.name == teamname), None)
             if team is None:
                 team = RaceTeam(teamname)
+                if team in teams:
+                    teams.remove(team)
                 teams.append(team)
         if curcar:
             stats = Stats()
@@ -464,7 +476,7 @@ async def Start_Race(ctx,get_user_from_id):
         cur_circuit = rd.choice(circuits)
         all_pilot_in_race = [p for p in pilots if p.race_team and p.current_car and p.current_car.stats.durability > 0]
         if not all_pilot_in_race:
-            await ctx.send("No pilot found")
+            await ctx.send("Aucun pilote, je lance quoi moi, la pub ??")
             return
         proba_damage = 0.20
         embed = discord.Embed(
