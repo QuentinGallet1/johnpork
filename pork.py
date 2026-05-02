@@ -522,11 +522,11 @@ async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 0)
         return
     if user == user_react and str(reaction) == '💵':
         interest_amount = amount * interest // 100
-        userindebt.add_porklards(amount + interest_amount)
+        userindebt.add_porklards(amount)
         currentuser.add_porklards(-amount)
-        userindebt.set_debt(Debt(amount + interest_amount, currentuser, date.today() + timedelta(days=7)))
+        userindebt.set_debt(Debt(interest_amount, currentuser, date.today() + timedelta(days=7)))
         await ctx.send(f"bien jouer {currentuser.get_username()} tu a preter à {userindebt.get_username()}\n "
-               f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {amount + interest_amount} avant le {userindebt.get_debt()[0].limit_date}")
+               f"*ATTENTION* <@{userindebt.get_id()}> tu dois rembourser {interest_amount} avant le {userindebt.get_debt()[0].limit_date}")
     elif str(reaction) == '❌':
         await ctx.send ("Ton bro il veut pas de ton argent")
 
