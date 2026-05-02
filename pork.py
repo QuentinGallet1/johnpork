@@ -117,38 +117,8 @@ async def on_voice_state_update(member, before, after):
             await member.move_to(None)
             await general.send(f'{member.mention} t\'as pas la thune gros mdrr donc tu voc pas. POV ton argent : {user.get_porklards()}. Ptet falloir faire un emprunt ;)')
 
-    # Check if the member deafened themselves
-    elif not before.self_deaf and after.self_deaf:
-        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
-
-        if target_channel:
-            await member.move_to(target_channel)
-        if not voice_client:  # If the bot isn't in any voice channel
-            await target_channel.connect()  # Bot joins the target channel
-            print("Bot has joined the channel.")
-        elif voice_client.channel != target_channel:
-            await voice_client.move_to(target_channel)
-
-        else:
-            print("Target channel not found!")
-
-    # Check if user undeafened themselves
-    elif before.self_deaf and not after.self_deaf:
-        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
-        print(f"voice client : {voice_client}")
-        if target_channel and member.voice.channel == target_channel and voice_client and voice_client.channel == target_channel:
-            print("Sound can be played")
-            play_sound(voice_client, john_pork_calling)
-            while voice_client.is_playing():
-                await asyncio.sleep(1)
-            await voice_client.disconnect()
-            print("Bot disconnected")
-
-        else:
-            print("At least one condition was not met")
-
     # Check if user left a channel
-    elif before.channel and not after.channel and not member.bot:  # The member was in a channel and now left
+    if before.channel and not after.channel and not member.bot:  # The member was in a channel and now left
         if before.channel.guild.me in before.channel.members and len([m for m in before.channel.members if not m.bot]) == 1:
             await voice_client.disconnect()
         if general:
@@ -156,6 +126,15 @@ async def on_voice_state_update(member, before, after):
             threshold = 0.02  # 1 every 50 disconnects
             if rand <= threshold:
                 await general.send(f"{member.mention} bah alors ça rage mdrrrrr")
+
+    # Check if the member deafened themselves
+    elif not before.self_deaf and after.self_deaf:
+        target_channel = discord.utils.get(member.guild.voice_channels, id=channels["lecons_sage"])
+
+        if target_channel:
+            await member.move_to(target_channel)
+        else:
+            print("Target channel not found!")
 
 @bot.event
 async def on_member_join(member):
