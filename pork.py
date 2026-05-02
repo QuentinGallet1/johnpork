@@ -1,7 +1,6 @@
 import os
 from datetime import timedelta
 
-import yt_dlp as youtube_dl
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
@@ -168,6 +167,24 @@ async def on_member_join(member):
 #endregion
 
 #region Music
+"""
+@bot.command()
+async def call(ctx):
+    global voice_client
+    if ctx.author.voice:
+        channel = ctx.author.voice.channel
+        if voice_client is None or voice_client.channel != channel:
+            voice_client = await channel.connect()
+        if sounds:
+            first_sound_url = list(sounds.values())[0]
+            await song_queue.put(first_sound_url)
+            if not is_playing:
+                bot.loop.create_task(play_next(ctx))
+        else:
+            await ctx.send("Aucun son disponible")
+    else:
+        await ctx.send("Tu dois être dans un voc")
+
 def get_audio_source(url):
     ydl_opts = {
         'format': 'bestaudio',
@@ -248,7 +265,7 @@ async def stop(ctx):
         await ctx.send('Me casse')
     else:
         await ctx.send('Jsuis pas dans un voc mon reuf')
-
+"""
 #endregion
 @bot.command(aliases=['p'])
 @commands.check(in_allowed_channel)
@@ -273,8 +290,8 @@ async def shop(ctx):
         title="Porkshop",
     )
     embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
-    embed.add_field(name="1019 📨", value="Discute avec john pork", inline=False)
-    embed.add_field(name="5001 📃", value="Apprend quelque chose a john pork", inline=False)
+    embed.add_field(name="1000 📨", value="Discute avec john pork", inline=False)
+    embed.add_field(name="5000 📃", value="Apprend quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
     await msg.add_reaction('🍀')
     await msg.add_reaction('📨')
@@ -300,11 +317,11 @@ async def shop(ctx):
             user.add_porklards(-200)
             user.set_enhanced_gambles(3)
     if reaction ==  '📨':
-        if user.get_porklards() < 1019:
+        if user.get_porklards() < 1000:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
             return
         else:
-            user.add_porklards(-1019)
+            user.add_porklards(-1000)
             await ctx.author.send("Dis moi ce que tu veux que je dise dans le général")
             def check(m):
                 return m.author == ctx.author and m.guild is None
@@ -316,13 +333,13 @@ async def shop(ctx):
                     await general.send(message.content)
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
-                user.add_porklards(1019)
+                user.add_porklards(1000)
     if reaction == '📃':
-        if user.get_porklards() < 5001:
+        if user.get_porklards() < 5000:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
             return
         else:
-            user.add_porklards(-5001)
+            user.add_porklards(-5000)
             await ctx.author.send("Dis moi ce que tu veux que j'apprenne")
             def check(m):
                 return m.author == ctx.author and m.guild is None
@@ -331,7 +348,7 @@ async def shop(ctx):
                 add_data(message.content,message.content, "answers.json")
             except asyncio.TimeoutError:
                 await ctx.send("Trop lent, annulé !")
-                user.add_porklards(5001)
+                user.add_porklards(5000)
     await ctx.send("Profite de ton achat et capitalise un max")
 
 @bot.command(aliases=['c','lb'])
@@ -478,22 +495,7 @@ async def clearclassement(ctx):
         del users[user]
     print("clear effectue")
 #endregion
-@bot.command()
-async def call(ctx):
-    global voice_client
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        if voice_client is None or voice_client.channel != channel:
-            voice_client = await channel.connect()
-        if sounds:
-            first_sound_url = list(sounds.values())[0]
-            await song_queue.put(first_sound_url)
-            if not is_playing:
-                bot.loop.create_task(play_next(ctx))
-        else:
-            await ctx.send("Aucun son disponible")
-    else:
-        await ctx.send("Tu dois être dans un voc")
+
 
 @bot.command(aliases=['lm'],help="endette quelqu'un pour une semaine (le fais passer en négatif )")
 async def lend_money(ctx, user : discord.Member, amount :int, interest :int = 100):
