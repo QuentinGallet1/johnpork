@@ -265,10 +265,16 @@ async def stp_argent(ctx):
 @bot.command(aliases=['s'])
 async def shop(ctx):
 
+    user = get_user_from_id(ctx.author.id)
     embed = discord.Embed(
         title="Porkshop",
     )
-    embed.add_field(name="200 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
+    lucky_gamble_percentage_price = 0.05 #5%
+    lucky_gamble_base_price = 500
+    lucky_gamble_full_price = lucky_gamble_base_price + round(user.get_porklards() * lucky_gamble_percentage_price)
+    lucky_gamble_full_price = lucky_gamble_full_price if lucky_gamble_full_price > lucky_gamble_base_price else lucky_gamble_base_price #to avoid negative shop price
+    
+    embed.add_field(name= str(lucky_gamble_full_price) + " 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
     embed.add_field(name="1000 📨", value="Discute avec john pork", inline=False)
     embed.add_field(name="5000 📃", value="Apprend quelque chose a john pork", inline=False)
     msg = await ctx.send(embed=embed)
@@ -276,24 +282,23 @@ async def shop(ctx):
     await msg.add_reaction('📨')
     await msg.add_reaction('📃')
 
-    def check(reaction, user):
-        return str(reaction.emoji) in ['🍀','📃','📨'] and reaction.message.id == msg.id and not user.bot
+    def check(reaction, reacting_user):
+        return str(reaction.emoji) in ['🍀','📃','📨'] and reaction.message.id == msg.id and not reacting_user.bot and reacting_user.id == user.get_id()
     
     try:
-        reaction, user = await bot.wait_for('reaction_add', timeout=300, check=check)
+        reaction, reacting_user = await bot.wait_for('reaction_add', timeout=300, check=check)
 
     except asyncio.TimeoutError:
         await ctx.send("shop fermé j'ai pas que ça à foutre")
         return
     
-    user = get_user_from_id(user.id)
     reaction = str(reaction.emoji)
     if reaction == '🍀':
-        if user.get_porklards() < 200:
+        if user.get_porklards() < lucky_gamble_full_price:
             await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
             return
         else:
-            user.add_porklards(-200)
+            user.add_porklards(-lucky_gamble_full_price)
             user.set_enhanced_gambles(3)
     if reaction ==  '📨':
         if user.get_porklards() < 1000:
