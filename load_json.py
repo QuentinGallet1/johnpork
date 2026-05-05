@@ -1,6 +1,8 @@
 import json
 from datetime import date
 
+from Items import Item
+
 
 def load_data(filename: str):
     with open(filename, 'r', encoding='utf-8') as file:
@@ -13,13 +15,32 @@ def add_data(key: str, value, filename: str):
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
+def AddItemInJson(item: Item):
+    data = load_data("items.json") or {}
+    key = str(item.id)
+    data[key] = {
+        "id": str(item.id),
+        "name": item.name,
+        "icon": item.icon,
+        "description": item.description,
+        "price": item.price,
+        "percent": item.percent,
+        "achat": item.achat,
+        "action": item.action_name
+    }
+    with open('items.json', 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
+
+
+
 users_data = load_data("users.json")
 answers_data = load_data("answers.json")
 channels_data = load_data("channels.json")
 sounds_data = load_data("sounds.json")
+items_data = load_data("items.json")
 
 
-
+#region Class
 class User:
     def __init__(self, username : str, id : int, admin : int, porklards : int):
         self._username = username
@@ -106,8 +127,8 @@ class Debt:
         self.limit_date = _limit_date
 
     def check_date(self,date : date):
-        return date == self._limit_date
-
+        return date == self.limit_date
+#endregion
 
 def get_user_from_id(id: int) -> User:
     try:
@@ -115,10 +136,20 @@ def get_user_from_id(id: int) -> User:
     except:
         return None
 
-
 sounds = {sound:sounds_data[sound] for sound in sounds_data}
 answers = {answer:answers_data[answer] for answer in answers_data}
-
+items_list = {
+    item["id"]: Item(
+        p_id=item["id"],
+        p_name=item["name"],
+        p_icon=item["icon"],
+        p_description=item["description"],
+        p_price=int(item["price"]),
+        p_percent=int(item.get("percent", 100)),
+        p_achat=item.get("achat", "")
+    )
+    for item in items_data.values()
+}
 users = {
     user_data["id"]: User(
         username=user_name,
@@ -144,6 +175,20 @@ for user_name, user_data in users_data.items():
 
 
 channels = {channel:int(channels_data[channel]) for channel in channels_data}
+
+# Importer item_commands pour enregistrer les actions dans AVAILABLE_ACTIONS
+from item_commands import get_action_by_name
+
+# Charger les actions des items à partir du JSON
+for item_id, item in items_list.items():
+    # Chercher le JSON correspondant à cet item
+    for item_data in items_data.values():
+        if item_data["id"] == item_id:
+            action_name = item_data.get("action")
+            if action_name:
+                item.on_use = get_action_by_name(action_name)
+                item.action_name = action_name
+            break
 
 
 

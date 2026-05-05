@@ -1,0 +1,12 @@
+{
+    "0": {
+        "id": "0",
+        "name": "test",
+        "icon": "🦖",
+        "description": "test",
+        "achat":"branle bite",
+        "price": 10,
+        "percent": 100,
+        "action": "lucky_gamble"
+    }
+}

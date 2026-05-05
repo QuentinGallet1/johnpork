@@ -32,7 +32,7 @@ voice_client = None
 active_users = set()
 
 def in_allowed_channel(ctx):
-    return ctx.channel.id == channels["commands"]
+    return ctx.channel.id in (channels["commands"], channels["test"])
 
 def get_user_from_id(id: int) -> User:
     try:
@@ -257,84 +257,71 @@ async def porklards(ctx, member: discord.Member = None):
     else:
         await ctx.send("Deso gros il existe pas ce type")
 
-""" @bot.command()
+#region item/shop
 async def stp_argent(ctx):
     user = get_user_from_id(ctx.author.id)
     if user is not None and user.get_porklards() < 0:
-        user.add_porklards(- user.get_porklards()) """
+        user.add_porklards(- user.get_porklards())
+
 @bot.command(aliases=['s'])
+@commands.check(in_allowed_channel)
 async def shop(ctx):
-
+    """Affiche le magasin et gère les achats d'items."""
     user = get_user_from_id(ctx.author.id)
-    embed = discord.Embed(
-        title="Porkshop",
-    )
-    lucky_gamble_percentage_price = 0.05 #5%
-    lucky_gamble_base_price = 500
-    lucky_gamble_full_price = lucky_gamble_base_price + round(user.get_porklards() * lucky_gamble_percentage_price)
-    lucky_gamble_full_price = lucky_gamble_full_price if lucky_gamble_full_price > lucky_gamble_base_price else lucky_gamble_base_price #to avoid negative shop price
-    
-    embed.add_field(name= str(lucky_gamble_full_price) + " 🍀", value="+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)", inline=False)
-    embed.add_field(name="1000 📨", value="Discute avec john pork", inline=False)
-    embed.add_field(name="5000 📃", value="Apprend quelque chose a john pork", inline=False)
-    msg = await ctx.send(embed=embed)
-    await msg.add_reaction('🍀')
-    await msg.add_reaction('📨')
-    await msg.add_reaction('📃')
 
-    def check(reaction, reacting_user):
-        return str(reaction.emoji) in ['🍀','📃','📨'] and reaction.message.id == msg.id and not reacting_user.bot and reacting_user.id == user.get_id()
-    
+    embed = discord.Embed(title="Porkshop")
+
+    for item in items_list.values():
+        embed.add_field(
+            name=f"{item.Get_Item_Name()} | {int(item.Get_Item_Price())} {item.Get_Item_Icon()}",
+            value=item.Get_Item_Description(),
+            inline=False
+        )
+
+    msg = await ctx.send(embed=embed)
+    possible_react = set()
+
+    for item in items_list.values():
+        icon = item.Get_Item_Icon()
+        await msg.add_reaction(icon)
+        possible_react.add(icon)
+
+    def check(reaction, user_react):
+        return str(reaction.emoji) in possible_react and reaction.message.id == msg.id and not user_react.bot
+
     try:
         reaction, reacting_user = await bot.wait_for('reaction_add', timeout=300, check=check)
-
     except asyncio.TimeoutError:
         await ctx.send("shop fermé j'ai pas que ça à foutre")
         return
-    
-    reaction = str(reaction.emoji)
-    if reaction == '🍀':
-        if user.get_porklards() < lucky_gamble_full_price:
-            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
-            return
-        else:
-            user.add_porklards(-lucky_gamble_full_price)
-            user.set_enhanced_gambles(3)
-    if reaction ==  '📨':
-        if user.get_porklards() < 1000:
-            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
-            return
-        else:
-            user.add_porklards(-1000)
-            await ctx.author.send("Dis moi ce que tu veux que je dise dans le général")
-            def check(m):
-                return m.author == ctx.author and m.guild is None
 
-            try:
-                message = await bot.wait_for('message', timeout=30.0, check=check)
-                general = discord.utils.get(ctx.guild.text_channels, id=channels["general"]) 
-                if general: 
-                    await general.send(message.content)
-            except asyncio.TimeoutError:
-                await ctx.send("Trop lent, annulé !")
-                user.add_porklards(1000)
-    if reaction == '📃':
-        if user.get_porklards() < 5000:
-            await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
-            return
-        else:
-            user.add_porklards(-5000)
-            await ctx.author.send("Dis moi ce que tu veux que j'apprenne")
-            def check(m):
-                return m.author == ctx.author and m.guild is None
-            try:
-                message = await bot.wait_for('message', timeout=30.0, check=check)
-                add_data(message.content,message.content, "answers.json")
-            except asyncio.TimeoutError:
-                await ctx.send("Trop lent, annulé !")
-                user.add_porklards(5000)
-    await ctx.send("Profite de ton achat et capitalise un max")
+    user = get_user_from_id(reacting_user.id)
+    reaction_emoji = str(reaction.emoji)
 
+    # Trouver l'item correspondant à la réaction
+    selected_item = None
+    for item in items_list.values():
+        if item.Get_Item_Icon() == reaction_emoji:
+            selected_item = item
+            break
+
+    if selected_item is None:
+        await ctx.send("Item non trouvé")
+        return
+
+    # Vérifier les ressources
+    if user.get_porklards() < selected_item.Get_Item_Price():
+        await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
+        return
+
+    # Appeler la fonction de l'item
+    success = await selected_item.execute(ctx, bot, user)
+
+    if success is False:
+        return
+    elif success is True or success is None:
+        user.add_porklards(-int(selected_item.Get_Item_Price()))
+#endregion
 @bot.command(aliases=['c','lb'])
 async def classement(ctx, depth=10):
     message = "```Classement des plus gros porcs du serveur : \n"
@@ -630,7 +617,15 @@ async def add_porklard_voc(member,before,after):
     elif before.channel and not after.channel:
         active_users.discard(member.id)
 
+#TODO Remove here
+list_item = load_json.items_list
+@bot.command()
+async def CreateItem(ctx):
+    item = Item(len(load_json.items_list)+1,"test","test","test",10)
+    load_json.AddItemInJson(item)
 
+
+#end TODO
 
 
 @bot.command()
