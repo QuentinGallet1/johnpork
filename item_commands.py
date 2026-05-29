@@ -20,14 +20,14 @@ def register_action(action_name: str):
 async def action_lucky_gamble(ctx, bot, user, item):
     """Action pour l'item chance au gamble."""
     user.set_enhanced_gambles(3)
-    await ctx.send(item.achat)
+    await ctx.send(f"{item.achat}")
     return True
 
 
 @register_action('speak_message')
 async def action_speak_message(ctx, bot, user, item):
     """Action pour faire parler le bot dans le général."""
-    await ctx.send(item.achat)
+    await ctx.send(f"{item.achat}")
     await ctx.author.send("Dis moi ce que tu veux que je dise dans le général")
     def check_msg(m):
         return m.author == ctx.author and m.guild is None
@@ -47,7 +47,7 @@ async def action_speak_message(ctx, bot, user, item):
 @register_action('teach_answer')
 async def action_teach_answer(ctx, bot, user, item):
     """Action pour apprendre une nouvelle réponse au bot."""
-    await ctx.send(item.achat)
+    await ctx.send(f"{item.achat}")
     await ctx.author.send("Dis moi ce que tu veux que j'apprenne")
 
     def check_msg(m):

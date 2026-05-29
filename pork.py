@@ -68,19 +68,18 @@ async def on_message(message):
     rand = rd.random()
     threshold = 0.025  # once every 40 messages
 
-    if not message.attachments and message.content and message.content[0] in ['!', ',', '/']:
+    if not message.attachments and message.content and message.content[0] == '!':
         print('Processing command')
         await bot.process_commands(message)  # Allow command processing
         return
 
     print(f"message guild :  {message.guild}")
     if not message.author.bot and message.guild is not None:
+        await check_debt(message)
         user = get_user_from_id(message.author.id)
         if user is None:
             await add_missing_members(message,True)
-            return
-        if message.channel.id == channels["daily"] and user.get_daily() != date.today() or user.get_daily() == 0:
-            await check_debt(message)
+        if user.get_daily() != date.today() or user.get_daily() == 0:
             give_money(user, message,True)
             user.use_daily(date.today())
             print("give daily_reward")
@@ -145,107 +144,6 @@ async def on_member_join(member):
         print(f'Member {member.name} joined the server')
 #endregion
 
-#region Music
-"""
-@bot.command()
-async def call(ctx):
-    global voice_client
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        if voice_client is None or voice_client.channel != channel:
-            voice_client = await channel.connect()
-        if sounds:
-            first_sound_url = list(sounds.values())[0]
-            await song_queue.put(first_sound_url)
-            if not is_playing:
-                bot.loop.create_task(play_next(ctx))
-        else:
-            await ctx.send("Aucun son disponible")
-    else:
-        await ctx.send("Tu dois être dans un voc")
-
-def get_audio_source(url):
-    ydl_opts = {
-        'format': 'bestaudio',
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'outtmpl': 'temp/temp_audio.%(ext)s',
-        'max_filesize': 50 * 1024 * 1024,  # 50 MB
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'm4a',
-        }]
-    }
-    try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            audio_file = ydl.prepare_filename(info)
-            base, ext = os.path.splitext(audio_file)
-            return f"{base}.m4a"
-    except youtube_dl.DownloadError as e:
-        print(f"Download error: {e}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-async def play_next(ctx):
-    global is_playing, voice_client
-    is_playing = True
-    while not song_queue.empty():
-        url = await song_queue.get()
-        audio_file = get_audio_source(url)
-        if audio_file is None:
-            await ctx.send("A pas marché, choisis de meilleures musiques ptet ? ")
-            continue
-        if voice_client is None or not voice_client.is_connected():
-            await ctx.send("Bot pas connecté au voc")
-            is_playing = False
-            return
-        if voice_client.is_playing():
-            voice_client.stop()
-        try:
-            voice_client.play(discord.FFmpegPCMAudio(audio_file), after=lambda e: bot.loop.call_soon_threadsafe(asyncio.create_task, play_next(ctx)))
-            while voice_client is not None and voice_client.is_connected() and voice_client.is_playing():
-                await asyncio.sleep(1)
-        except Exception as e:
-            await ctx.send(f"A pas marché, choisis de meilleures musiques ptet ?: {e}")
-            print(f"Playback error: {e}")
-    is_playing = False
-
-@bot.command()
-async def play(ctx, url: str):
-    global voice_client
-    if ctx.author.voice is None:
-        await ctx.send("Faut être dans un voc chacal")
-        return
-    channel = ctx.author.voice.channel
-    if voice_client is None:
-        voice_client = await channel.connect()
-    elif voice_client.channel != channel:
-        await voice_client.move_to(channel)
-    await song_queue.put(url)
-    if not is_playing:
-        bot.loop.create_task(play_next(ctx))
-
-@bot.command()
-async def skip(ctx):
-    global voice_client
-    if voice_client and voice_client.is_playing():
-        voice_client.stop()
-        await ctx.send('Hop ça dégage la musique de merde')
-    else:
-        await ctx.send('Pas de musique en cours, faut suivre :) ')
-
-@bot.command()
-async def stop(ctx):
-    global voice_client
-    if voice_client:
-        await voice_client.disconnect()
-        voice_client = None
-        await ctx.send('Me casse')
-    else:
-        await ctx.send('Jsuis pas dans un voc mon reuf')
-"""
-#endregion
 @bot.command(aliases=['p'])
 @commands.check(in_allowed_channel)
 async def porklards(ctx, member: discord.Member = None):
@@ -272,8 +170,9 @@ async def shop(ctx):
     embed = discord.Embed(title="Porkshop")
 
     for item in items_list.values():
+        dynamic_price = item.Get_Item_Price(user.get_porklards())
         embed.add_field(
-            name=f"{item.Get_Item_Name()} | {int(item.Get_Item_Price())} {item.Get_Item_Icon()}",
+            name=f"{item.Get_Item_Name()} | {int(dynamic_price)} {item.Get_Item_Icon()}",
             value=item.Get_Item_Description(),
             inline=False
         )
@@ -309,8 +208,8 @@ async def shop(ctx):
         await ctx.send("Item non trouvé")
         return
 
-    # Vérifier les ressources
-    if user.get_porklards() < selected_item.Get_Item_Price():
+    dynamic_price = selected_item.Get_Item_Price(user.get_porklards())
+    if user.get_porklards() < dynamic_price:
         await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         return
 
@@ -318,9 +217,11 @@ async def shop(ctx):
     success = await selected_item.execute(ctx, bot, user)
 
     if success is False:
+        user.add_porklards(dynamic_price)
         return
     elif success is True or success is None:
-        user.add_porklards(-int(selected_item.Get_Item_Price()))
+        user.add_porklards(-int(dynamic_price))
+        await ctx.send(f"il te reste {user.get_porklards()} porklards mon mignon")
 #endregion
 @bot.command(aliases=['c','lb'])
 async def classement(ctx, depth=10):
@@ -560,8 +461,13 @@ def give_money(user: User, message: discord.Message,isDaily = False):
     if len(message.content) > 1 and user.get_previous_message() != message.content:
         if not message.attachments:
             computed_bad_words_penalty = compute_bad_words_penalty(user, message)
-        gain = daily_reward if isDaily else message_reward
-        print(isDaily)
+        gain = message_reward
+        if isDaily and user.get_porklards() < 0:
+            gain = abs(user.get_porklards())/3
+        elif isDaily:
+            gain = daily_reward
+
+        print(f"first day message {isDaily}")
         user.add_porklards(gain + computed_bad_words_penalty)
 
 def save_users():
@@ -617,15 +523,6 @@ async def add_porklard_voc(member,before,after):
     elif before.channel and not after.channel:
         active_users.discard(member.id)
 
-#TODO Remove here
-list_item = load_json.items_list
-@bot.command()
-async def CreateItem(ctx):
-    item = Item(len(load_json.items_list)+1,"test","test","test",10)
-    load_json.AddItemInJson(item)
-
-
-#end TODO
 
 
 @bot.command()

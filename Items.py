@@ -26,8 +26,15 @@ class Item:
         return self.icon
     def Get_Item_Description(self):
         return self.description
-    def Get_Item_Price(self):
-        return self.price
+    def Get_Item_Price(self, user_porklards: int = None):
+        """Retourne le prix de l'item, éventuellement ajusté selon les porklards de l'user."""
+        base_price = self.price
+        if user_porklards is None:
+            return base_price
+
+        dynamic_price = int(user_porklards *self.percent/100)
+        final_price = max(dynamic_price, base_price)
+        return final_price
     async def execute(self, ctx, bot, user):
         """Exécute la fonction personnalisée de l'item si elle existe."""
         if self.on_use:
