@@ -15,7 +15,7 @@ class Item:
         self.icon = p_icon
         self.description = p_description
         self.achat = p_achat
-        self.price = int(p_price * p_percent / 100)
+        self.price = p_price
         self.percent = p_percent
         self.on_use = on_use  # Fonction personnalisée appelée lors de l'utilisation
         self.action_name = action_name
