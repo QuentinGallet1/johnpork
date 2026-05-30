@@ -89,7 +89,7 @@ async def on_message(message):
 
         if any(term in message.content.lower() for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére"]) and " ou " in message.content :
             options = message.content
-            for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére"]:
+            for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére","tu préfères", "tu préfère"]:
                 options = options.replace(term, "").strip()
             # Diviser par "ou" et choisir aléatoirement une option
             choices = [choice.strip() for choice in options.split("ou") if choice.strip()]
