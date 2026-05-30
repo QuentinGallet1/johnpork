@@ -138,6 +138,7 @@ def get_user_from_id(id: int) -> User:
 
 sounds = {sound:sounds_data[sound] for sound in sounds_data}
 answers = {answer:answers_data[answer] for answer in answers_data}
+channels = {channel:int(channels_data[channel]) for channel in channels_data}
 items_list = {
     item["id"]: Item(
         p_id=item["id"],
@@ -160,6 +161,40 @@ users = {
     for user_name, user_data in users_data.items()
 }
 
+
+#Load citation
+async def LoadCitation(bot):
+    channel = bot.get_channel(channels.get("citations"))
+    if channel is None:
+        return []
+    messages = [msg.content async for msg in channel.history(limit=500)]
+
+    citations = []
+    for msg in messages:
+        msg_citations = []
+        start = 0
+        while True:
+            start = msg.find('"', start)
+            if start == -1:
+                break
+            end = msg.find('"', start + 1)
+            if end == -1:
+                break
+            msg_citations.append(msg[start+1:end])
+            start = end + 1
+
+        if msg_citations:
+            citation_text = "\n".join(msg_citations)
+            citations.append(citation_text)
+            answers[citation_text] = citation_text
+            print(msg_citations)
+
+        for group in citations:
+            for citation in group:
+                answers[citation] = citation
+
+    return citations
+
 for user_name, user_data in users_data.items():
     user_id = user_data["id"]
     if user_id in users:
@@ -174,7 +209,6 @@ for user_name, user_data in users_data.items():
             user.set_debt(debt)
 
 
-channels = {channel:int(channels_data[channel]) for channel in channels_data}
 
 # Importer item_commands pour enregistrer les actions dans AVAILABLE_ACTIONS
 from item_commands import get_action_by_name

@@ -30,7 +30,6 @@ song_queue = asyncio.Queue()
 is_playing = False
 voice_client = None
 active_users = set()
-
 def in_allowed_channel(ctx):
     return ctx.channel.id in (channels["commands"], channels["test"])
 
@@ -54,6 +53,7 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name="Devant ta porte..."))
     bot.loop.create_task(porklard_voc())
     periodic_save.start()
+    await LoadCitation(bot)
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -87,7 +87,16 @@ async def on_message(message):
             give_money(user, message)
         user.set_previous_message(message.content)
 
-        if rand <= threshold or "<@1338630670183956541>" in message.content :
+        if any(term in message.content.lower() for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére"]) and " ou " in message.content :
+            options = message.content
+            for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére"]:
+                options = options.replace(term, "").strip()
+            # Diviser par "ou" et choisir aléatoirement une option
+            choices = [choice.strip() for choice in options.split("ou") if choice.strip()]
+            if choices and len(choices) > 1:
+                selected_option = rd.choice(choices)
+                await message.reply(selected_option)
+        elif rand <= threshold or "<@1338630670183956541>" in message.content :
             await message.reply(answers[rd.choice(list(answers.keys()))])
 
         if not message.attachments and (" tg " in message.content.lower() or "ta gueule" in message.content.lower()):
