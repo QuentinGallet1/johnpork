@@ -87,12 +87,12 @@ async def on_message(message):
             give_money(user, message)
         user.set_previous_message(message.content)
 
-        if any(term in message.content.lower() for term in ["tu preferes", "tu préféres", "tu prefere", "tu préfére"]) and " ou " in message.content :
+        if any(term in message.content.lower() for term in ["tu preferes", "tu prefere","tu préfères", "tu préfère"]) and " ou " in message.content :
             options = message.content
             for term in ["tu preferes", "tu prefere","tu préfères", "tu préfère"]:
                 options = options.replace(term, "").strip()
             # Diviser par "ou" et choisir aléatoirement une option
-            choices = [choice.strip() for choice in options.split("ou") if choice.strip()]
+            choices = [choice.strip() for choice in options.split(" ou ") if choice.strip()]
             if choices and len(choices) > 1:
                 selected_option = rd.choice(choices)
                 await message.reply(selected_option)
