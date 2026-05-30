@@ -522,7 +522,7 @@ def give_money(user: User, message: discord.Message,isDaily = False):
             computed_bad_words_penalty = compute_bad_words_penalty(user, message)
         gain = message_reward
         if isDaily and user.get_porklards() < 0:
-            gain = abs(user.get_porklards())/3
+            gain = int(abs(user.get_porklards())/3)
         elif isDaily:
             gain = daily_reward
 
