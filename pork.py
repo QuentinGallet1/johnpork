@@ -504,6 +504,12 @@ async def refund_debt(ctx, user : discord.Member):
             break
     await ctx.send(f"{userindebt.get_username()} à rembourser {currentuser.get_username()} en lui rendant {debtamount} on applaudi le professionnalisme de ce gars !")
 
+@bot.command()
+@commands.check(in_allowed_channel)
+async def check_daily(ctx):
+    user = get_user_from_id(ctx.message.author.id)
+    dailyisdo = "pas fais" if user.get_daily() != date.today() or user.get_daily() == 0 else "fais"
+    return await ctx.send(f"ton daily est {dailyisdo} donc arrête de me parler")
 def compute_bad_words_penalty(user: User, message: discord.Message) -> int:
     with open("insults.txt", 'r', encoding='utf-8') as file:
         bad_words = {line.strip().lower() for line in file}
