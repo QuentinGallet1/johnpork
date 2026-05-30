@@ -180,7 +180,9 @@ async def LoadCitation(bot):
             end = msg.find('"', start + 1)
             if end == -1:
                 break
-            msg_citations.append(msg[start+1:end])
+            citation = msg[start+1:end]
+            if len(citation) > 1:
+                msg_citations.append(citation)
             start = end + 1
 
         if msg_citations:
