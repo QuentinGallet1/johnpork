@@ -8,8 +8,10 @@ class Item:
     achat = ""
     price = 0
     percent = 100
+    stackable = False
 
-    def __init__(self, p_id, p_name, p_icon, p_description, p_price, p_percent=100, p_achat="", on_use: Optional[Callable] = None, action_name: str = None):
+
+    def __init__(self, p_id, p_name, p_icon, p_description, p_price, p_percent=100, p_achat="",p_stackable=False, on_use: Optional[Callable] = None, action_name: str = None):
         self.id = p_id
         self.name = p_name
         self.icon = p_icon
@@ -17,6 +19,7 @@ class Item:
         self.achat = p_achat
         self.price = p_price
         self.percent = p_percent
+        self.stackable = p_stackable
         self.on_use = on_use  # Fonction personnalisée appelée lors de l'utilisation
         self.action_name = action_name
 

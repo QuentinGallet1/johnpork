@@ -51,6 +51,7 @@ class User:
         self._enhanced_gambles = 0
         self._useDaily = 0
         self.debt = []
+        self.inventory = []
 
     def __str__(self):
         return f'Name : {self._username} , Id : {self._id}'
@@ -120,6 +121,21 @@ class User:
         }
         with open('users.json', 'w', encoding='utf-8') as file:
             json.dump(all_users, file, indent=4, ensure_ascii=False)
+
+    def add_item(self, item : Item):
+        self.inventory.append(item)
+    def use_item_by_id(self,id:int):
+        for item in self.inventory:
+            if item.id == id:
+                item.execute()
+
+    def remove_item_by_id(self,id:int):
+        for item in self.inventory:
+            if item.id == id:
+                self.inventory.remove(item)
+    def get_inventory(self):
+        return self.inventory
+
 class Debt:
     def __init__(self, _amount : int, _user : User,_limit_date : date ):
         self.amount = _amount
@@ -147,7 +163,8 @@ items_list = {
         p_description=item["description"],
         p_price=int(item["price"]),
         p_percent=int(item.get("percent", 100)),
-        p_achat=item.get("achat", "")
+        p_achat=item.get("achat", ""),
+        p_stackable=bool(item.get("stackable","False"))
     )
     for item in items_data.values()
 }
@@ -225,6 +242,7 @@ for item_id, item in items_list.items():
                 item.on_use = get_action_by_name(action_name)
                 item.action_name = action_name
             break
+
 
 
 

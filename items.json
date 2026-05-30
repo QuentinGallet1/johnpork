@@ -5,8 +5,9 @@
         "icon": "🍀",
         "description": "+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)",
         "achat": "va gamble maintenant",
-        "price": 10,
+        "price": 200,
         "percent":5,
+        "stackable":"True",
         "action": "lucky_gamble"
     },
     "2": {
@@ -17,6 +18,7 @@
         "price": 1000,
         "percent": 5,
         "achat": "ok bro pas de soucis dis moi tout",
+        "stackable":"False",
         "action": "speak_message"
     },
     "3": {
@@ -25,8 +27,9 @@
         "icon": "💾",
         "description": "Apprend facilement avec john pork",
         "price": 5000,
-        "percent": 20,
+        "percent": 5,
         "achat": "dis moi tout mon coquin",
+        "stackable":"False",
         "action": "teach_answer"
     }
 }

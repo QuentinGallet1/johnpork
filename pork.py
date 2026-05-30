@@ -31,7 +31,11 @@ is_playing = False
 voice_client = None
 active_users = set()
 def in_allowed_channel(ctx):
-    return ctx.channel.id in (channels["commands"], channels["test"])
+    try:
+        allowed_channels = (channels.get("commands"), channels.get("test"))
+        return ctx.channel.id in allowed_channels
+    except:
+        return False
 
 def get_user_from_id(id: int) -> User:
     try:
@@ -153,6 +157,48 @@ async def on_member_join(member):
         print(f'Member {member.name} joined the server')
 #endregion
 
+@bot.command(aliases=['i'])
+@commands.check(in_allowed_channel)
+async def inventory(ctx, member: discord.Member = None):
+    if member is None:
+        user = get_user_from_id(ctx.author.id)
+    else:
+        user = get_user_from_id(member.id)
+    
+    if user is None:
+        await ctx.send("Deso gros il existe pas ce type")
+        return
+
+    inventory_items = user.get_inventory()
+    if not inventory_items:
+        await ctx.send(f"{user.get_username()} n'a rien dans son inventaire")
+        return
+
+    embed = discord.Embed(title=f"Inventaire de {user.get_username()}")
+    for item in inventory_items:
+        embed.add_field(name=f"{item.Get_Item_Icon()} {item.Get_Item_Name()}", value=item.Get_Item_Description(), inline=False)
+    await ctx.send(embed=embed)
+
+
+@bot.command(aliases=['ui'])
+@commands.check(in_allowed_channel)
+async def use_item(ctx, *item_name):
+    user = get_user_from_id(ctx.author.id)
+    if user is None:
+        return await ctx.send("Deso gros il existe pas ce type")
+    cur_inv = user.get_inventory()
+    item_name_str = " ".join(item_name)
+    for item in cur_inv:
+        if item.Get_Item_Name() == item_name_str:
+            await item.execute(ctx,bot,user)
+            user.remove_item_by_id(item.id)
+            await ctx.send(f"tu as utilisé {item.Get_Item_Name()}")
+            return
+        else :
+            print(f"{item_name_str} n'est pas égale a {item.Get_Item_Name()}")
+    return await ctx.send("Il est con comme une table votre pote il a rien et il veut faire des dingz")
+
+
 @bot.command(aliases=['p'])
 @commands.check(in_allowed_channel)
 async def porklards(ctx, member: discord.Member = None):
@@ -221,9 +267,13 @@ async def shop(ctx):
     if user.get_porklards() < dynamic_price:
         await ctx.send(f"{user.get_username()} trop pauvre pour ça connard")
         return
-
+    print(f"stackable : {selected_item.stackable}")
     # Appeler la fonction de l'item
-    success = await selected_item.execute(ctx, bot, user)
+    if selected_item.stackable:
+        success = True
+        user.add_item(selected_item)
+    else :
+        await selected_item.execute(ctx, bot, user)
 
     if success is False:
         user.add_porklards(dynamic_price)
