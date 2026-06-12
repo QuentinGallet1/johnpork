@@ -329,8 +329,14 @@ async def blackjack(ctx, amount : int = 10):
 
 @bot.command(aliases=['ed'],help="Permet d'entrer dans la maison de john pork")
 async def enter_dungeon(ctx):
-    if get_user_from_id(ctx.author.id):
-    await RPGMain.EnterDungeon(ctx,bot,get_user_from_id)
+    cur_user = get_user_from_id(ctx.author.id)
+    if cur_user is None:
+        print("il existe pas ce type")
+    elif cur_user.check_item_in_inventory("Clé"):
+        cur_user.remove_item_by_name("Clé")
+        await RPGMain.EnterDungeon(ctx,bot,get_user_from_id)
+    else:
+        await ctx.send("Alalalala la galère la porte elle est fermé")
 
 #region Race
 @bot.command(aliases=['Rjt'],help="Rejoint une équipe, la créer si elle n'existe pas")
@@ -391,12 +397,32 @@ async def race_shop(ctx):
 #endregion
 
 #region Admin Command
-@bot.command()
-async def pork(ctx):
+async def CheckAdmin(ctx):
     if not get_user_from_id(ctx.author.id).is_admin():
         await ctx.author.send("On rigole on met des Gifs mais la vie de ma mère la prochaine fois que t'envoies un message je te retrouve et je vide ton frigo")
-        return
+        return False
+    return True
 
+@bot.command(hidden=True)
+async def give_porklards(ctx,member : discord.Member,value : int):
+    if not await CheckAdmin(ctx):
+        return
+    user = get_user_from_id(member.id)
+    user.add_porklards(value)
+    await ctx.send(f"J'ai ajouter {value} a {member.name}\nSi t'abuses tu la prends dans le cul")
+
+@bot.command(hidden=True)
+async def give_item(ctx,member : discord.Member,id:int):
+    if not await CheckAdmin(ctx):
+        return
+    user = get_user_from_id(member.id)
+    user.add_item_by_id(id)
+    await ctx.send("Si t'abuses tu la prends dans le cul")
+
+@bot.command()
+async def pork(ctx):
+    if not CheckAdmin(ctx):
+        return
     channel = await bot.fetch_channel(channels["voice_main"])
     for user in channel.members:
         await user.edit(mute=True)

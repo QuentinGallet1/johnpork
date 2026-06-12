@@ -38,6 +38,21 @@ class Item:
         dynamic_price = int(user_porklards *self.percent/100)
         final_price = max(dynamic_price, base_price)
         return final_price
+    def clone(self):
+        """Crée une copie indépendante de l'item."""
+        return Item(
+            p_id=self.id,
+            p_name=self.name,
+            p_icon=self.icon,
+            p_description=self.description,
+            p_price=self.price,
+            p_percent=self.percent,
+            p_achat=self.achat,
+            p_stackable=self.stackable,
+            on_use=self.on_use,
+            action_name=self.action_name
+        )
+
     async def execute(self, ctx, bot, user):
         """Exécute la fonction personnalisée de l'item si elle existe."""
         if self.on_use:

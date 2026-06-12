@@ -1,7 +1,7 @@
 {
     "0": {
         "id": "0",
-        "name": "trèfle a quatre feuille",
+        "name": "Trèfle a quatre feuille",
         "icon": "🍀",
         "description": "+20% de chance de gagner au gamble sur les 3 prochains tirages (ne stack pas)",
         "achat": "va gamble maintenant",

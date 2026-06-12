@@ -131,6 +131,22 @@ class User:
 
     def add_item(self, item : Item):
         self.inventory.append(item)
+
+    def add_item_by_id(self, itemid : int):
+        itemid_str = str(itemid)
+        if itemid_str in items_list:
+            self.inventory.append(items_list[itemid_str])
+            return True
+        return False
+
+    def add_item_by_name(self, itemname : str):
+        for item in items_list.values():
+            if item.name == itemname:
+                self.inventory.append(item)
+                return True
+        return False
+
+
     def use_item_by_id(self,id:int):
         for item in self.inventory:
             if item.id == id:
@@ -140,9 +156,21 @@ class User:
         for item in self.inventory:
             if item.id == id:
                 self.inventory.remove(item)
+    def remove_item_by_name(self,name:str):
+        for item in self.inventory:
+            if item.name == name:
+                self.inventory.remove(item)
+                print("Item Removed")
+                return
+        print("Item not Removed")
     def get_inventory(self):
         return self.inventory
 
+    def check_item_in_inventory(self,itemname):
+        for item in self.get_inventory():
+            if item.name == itemname:
+                return True
+        return False
 class Debt:
     def __init__(self, _amount : int, _user : User,_limit_date : date ):
         self.amount = _amount
@@ -237,9 +265,9 @@ for user_name, user_data in users_data.items():
         # Charger l'inventaire
         inventory_data = user_data.get("inventory", [])
         for item_data in inventory_data:
-            item_id = item_data.get("id")
+            item_id = str(item_data.get("id"))
             if item_id in items_list:
-                user.add_item(items_list[item_id])
+                user.add_item(items_list[item_id].clone())
 
 
 
