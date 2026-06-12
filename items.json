@@ -37,8 +37,8 @@
         "name": "Clé",
         "icon": "🔑",
         "description": "Permet d'aller dans un endroit mystérieux",
-        "price": 10000,
-        "percent": 10,
+        "price": 25,
+        "percent": 0,
         "achat": "utilise la commande !enter_dungeon ou !ed",
         "stackable":"True",
         "action": "null"
