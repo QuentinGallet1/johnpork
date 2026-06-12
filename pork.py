@@ -281,6 +281,7 @@ async def shop(ctx):
         return
     elif success is True or success is None:
         user.add_porklards(-int(dynamic_price))
+        user.save_state()
         await ctx.send(f"il te reste {user.get_porklards()} porklards mon mignon")
 #endregion
 @bot.command(aliases=['c','lb'])
@@ -326,9 +327,10 @@ async def gamble(ctx, amount=10):
 async def blackjack(ctx, amount : int = 10):
     await playBJ(ctx, amount,bot,get_user_from_id)
 
-@bot.command(aliases=['jdr'])
-async def playjdr(ctx):
-    await RPGMain.EnterDungeon(ctx,bot)
+@bot.command(aliases=['ed'],help="Permet d'entrer dans la maison de john pork")
+async def enter_dungeon(ctx):
+    if get_user_from_id(ctx.author.id):
+    await RPGMain.EnterDungeon(ctx,bot,get_user_from_id)
 
 #region Race
 @bot.command(aliases=['Rjt'],help="Rejoint une équipe, la créer si elle n'existe pas")

@@ -106,7 +106,9 @@ async def EnterDungeon(ctx,bot):
         possible_react = [eattack]
 
     while enemies:
-        msg_ennemi = await ctx.send(content=f"{enemies[0].name} a {enemies[0].stat.health} de point de vie")
+        cur_ennemi = enemies[0]
+        killed = False
+        msg_ennemi = await ctx.send(content=f"{cur_ennemi.name} a {cur_ennemi.stat.health} de point de vie")
         def check(reaction, user_react):
             return str(reaction.emoji) in possible_react and reaction.message.id == msg.id and not user_react.bot
         try:
@@ -120,13 +122,15 @@ async def EnterDungeon(ctx,bot):
         killed = False
         while not killed:
             if reaction_emoji == eattack:
-                killed = player.attack(enemies[0])
-                await msg_ennemi.edit(content=f"{enemies[0].name} a {enemies[0].stat.health} de point de vie\n{player.name} a {player.stat.health} de point de vie")
+                killed = player.attack(cur_ennemi)
+                await msg_ennemi.edit(content=f"{cur_ennemi.name} a {cur_ennemi.stat.health} de point de vie\n{player.name} a {player.stat.health} de point de vie")
                 if killed:
-                    player.addItems(enemies[0].sure_drop)
-                    enemies.remove(enemies[0])
+                    player.addItems(cur_ennemi.sure_drop)
+                    enemies.remove(cur_ennemi)
+                    await msg_ennemi.delete()
+                    await msg.remove_reaction(eattack)
                 else:
-                    player.AddLife(-enemies[0].stat.damage)
+                    player.AddLife(-cur_ennemi.stat.damage)
                     if player.stat.health <= 0:
                         print("player killed")
             await asyncio.sleep(1)

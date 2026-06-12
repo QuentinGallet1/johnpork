@@ -117,6 +117,13 @@ class User:
                     "user": debt.user.get_id()
                 }
                 for debt in self.debt
+            ],
+            "inventory": [
+                {
+                    "id": item.id,
+                    "name": item.name
+                }
+                for item in self.inventory
             ]
         }
         with open('users.json', 'w', encoding='utf-8') as file:
@@ -226,6 +233,13 @@ for user_name, user_data in users_data.items():
                 _limit_date=date.fromisoformat(debt_data["limit_date"])
             )
             user.set_debt(debt)
+        
+        # Charger l'inventaire
+        inventory_data = user_data.get("inventory", [])
+        for item_data in inventory_data:
+            item_id = item_data.get("id")
+            if item_id in items_list:
+                user.add_item(items_list[item_id])
 
 
 
