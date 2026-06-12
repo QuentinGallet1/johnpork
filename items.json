@@ -23,7 +23,7 @@
     },
     "3": {
         "id": "3",
-    "name": "Apprentissage Rapide",
+        "name": "Apprentissage Rapide",
         "icon": "💾",
         "description": "Apprend facilement avec john pork",
         "price": 5000,
@@ -31,5 +31,16 @@
         "achat": "dis moi tout mon coquin",
         "stackable":"False",
         "action": "teach_answer"
+    },
+    "4":{
+        "id": "4",
+        "name": "Clé",
+        "icon": "🔑",
+        "description": "Permet d'aller dans un endroit mystérieux",
+        "price": 10000,
+        "percent": 10,
+        "achat": "utilise la commande !enter_dungeon ou !ed",
+        "stackable":"True",
+        "action": "null"
     }
 }

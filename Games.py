@@ -2,7 +2,6 @@
 import random as rd
 
 import discord
-from discord import Member
 
 import load_json
 
@@ -369,7 +368,7 @@ async def Show_Team(ctx):
         embed.add_field(name="**__" + team.name + "__**: ", value=pilot_in_team, inline=False)
 
     await ctx.send(embed=embed)
-async def Create_Pilot(member : Member):
+async def Create_Pilot(member : discord.Member):
     Pilot(member.name, member.id)
     print("pilot created")
 

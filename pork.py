@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from Games import *
+from RPG import RPGMain
 from load_json import *
 
 # https://discordpy.readthedocs.io/en/stable/ext/commands/api.html#bots
@@ -324,6 +325,10 @@ async def gamble(ctx, amount=10):
 @bot.command(aliases=['bj'],help="play blackjack")
 async def blackjack(ctx, amount : int = 10):
     await playBJ(ctx, amount,bot,get_user_from_id)
+
+@bot.command(aliases=['jdr'])
+async def playjdr(ctx):
+    await RPGMain.EnterDungeon(ctx,bot)
 
 #region Race
 @bot.command(aliases=['Rjt'],help="Rejoint une équipe, la créer si elle n'existe pas")
