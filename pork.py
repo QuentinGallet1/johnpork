@@ -1,6 +1,8 @@
 import os
+import re
 from datetime import timedelta
 
+import emoji as emoji_lib
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
@@ -156,6 +158,32 @@ async def on_member_join(member):
         users[str(member.id)] = user
         user.save_state()
         print(f'Member {member.name} joined the server')
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.message_id != role_id_msg or payload.user_id == bot.user.id:
+        return
+    role_id = await get_role_for_emoji(str(payload.emoji))
+    if role_id is None:
+        return
+    guild = bot.get_guild(payload.guild_id)
+    role = guild.get_role(role_id)
+    member = payload.member or await guild.fetch_member(payload.user_id)
+    if role:
+        await member.add_roles(role)
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if payload.message_id != role_id_msg:
+        return
+    role_id = await get_role_for_emoji(str(payload.emoji))
+    if role_id is None:
+        return
+    guild = bot.get_guild(payload.guild_id)
+    role = guild.get_role(role_id)
+    member = await guild.fetch_member(payload.user_id)
+    if role:
+        await member.remove_roles(role)
 #endregion
 
 @bot.command(aliases=['i'])
@@ -180,7 +208,6 @@ async def inventory(ctx, member: discord.Member = None):
         embed.add_field(name=f"{item.Get_Item_Icon()} {item.Get_Item_Name()}", value=item.Get_Item_Description(), inline=False)
     await ctx.send(embed=embed)
 
-
 @bot.command(aliases=['ui'])
 @commands.check(in_allowed_channel)
 async def use_item(ctx, *item_name):
@@ -198,7 +225,6 @@ async def use_item(ctx, *item_name):
         else :
             print(f"{item_name_str} n'est pas égale a {item.Get_Item_Name()}")
     return await ctx.send("Il est con comme une table votre pote il a rien et il veut faire des dingz")
-
 
 @bot.command(aliases=['p'])
 @commands.check(in_allowed_channel)
@@ -396,8 +422,88 @@ async def race_shop(ctx):
 
 #endregion
 
+#AutoRole
+role_id_msg = 1527760845269106828 #1527757945037783200
+
+@bot.command(aliases=['Aar'],hidden=True)
+async def AddRole(ctx,*,role_to_add : str):
+    if not await IsAdmin(ctx):
+        return
+    role_to_add = " ".join(role_to_add.split())
+    synt = CheckSyntax(role_to_add)
+    if not synt:
+        return
+    role_channel  = bot.get_channel(1514781221522116799)#1244367567670214668)
+    message = await role_channel.fetch_message(role_id_msg)
+    await message.edit(content=f"{message.content}\n{role_to_add}")
+    dict_roles = SplitRole(role_to_add)
+    print("Check Role")
+    for roles in dict_roles:
+        print(f"{roles[0]} => {roles[1]}")
+        await message.add_reaction(roles[0])
+    print("Fin Check Role")
+
+@bot.command(hidden=True)
+async def UpdateRole(ctx):
+    if ctx is None or (not await IsAdmin(ctx))  :
+        return
+    role_channel  = bot.get_channel(1514781221522116799)#1244367567670214668)
+    message = await role_channel.fetch_message(role_id_msg)
+    all_roles= SplitRole(message.content)
+    print(all_roles)
+def CheckSyntax(content):
+    if "|" not in content:
+        return False
+    split = content.split(" | ")
+    if len(split) != 2:
+        return False
+
+    left = split[0]
+    if emoji_lib.is_emoji(left):
+        return True
+    # Format attendu : <:nom:123456789012345678>
+    match = re.fullmatch(r'<a?:\w+:(\d+)>', left)
+    if not match:
+        return False
+
+    emoji_id = int(match.group(1))
+    if not bot.get_emoji(emoji_id):
+        return False
+
+    right = split[1]
+    match = re.fullmatch(r'<@&(\d+)>', right)
+    if not match:
+        return False
+    return True
+def SplitRole(msg):
+    roles = []
+    new_msg = msg.split("\n")
+    for line in new_msg:
+        if "|" not in line:
+            continue
+        emoji, role = line.split("|", 1)
+        roles.append([emoji.strip(), role.strip()])
+    return roles
+
+@bot.command(aliases=['Arr'],hidden=True)
+async def ResetRole(ctx):
+    if not await IsAdmin(ctx):
+        return
+    role_channel  = bot.get_channel(1514781221522116799)#1244367567670214668)
+    message = await role_channel.fetch_message(role_id_msg)
+    await message.edit(content="Roles : ")
+
+async def get_role_for_emoji(emoji_str):
+    role_channel = bot.get_channel(1514781221522116799)
+    message = await role_channel.fetch_message(role_id_msg)
+    for emoji, role_mention in SplitRole(message.content):
+        if emoji == emoji_str:
+            match = re.fullmatch(r'<@&(\d+)>', role_mention)
+            return int(match.group(1)) if match else None
+    return None
+
 #region Admin Command
-async def CheckAdmin(ctx):
+async def IsAdmin(ctx):
     if not get_user_from_id(ctx.author.id).is_admin():
         await ctx.author.send("On rigole on met des Gifs mais la vie de ma mère la prochaine fois que t'envoies un message je te retrouve et je vide ton frigo")
         return False
@@ -405,7 +511,7 @@ async def CheckAdmin(ctx):
 
 @bot.command(hidden=True)
 async def give_porklards(ctx,member : discord.Member,value : int):
-    if not await CheckAdmin(ctx):
+    if not await IsAdmin(ctx):
         return
     user = get_user_from_id(member.id)
     user.add_porklards(value)
@@ -413,7 +519,7 @@ async def give_porklards(ctx,member : discord.Member,value : int):
 
 @bot.command(hidden=True)
 async def give_item(ctx,member : discord.Member,id:int):
-    if not await CheckAdmin(ctx):
+    if not await IsAdmin(ctx):
         return
     user = get_user_from_id(member.id)
     user.add_item_by_id(id)
@@ -421,7 +527,7 @@ async def give_item(ctx,member : discord.Member,id:int):
 
 @bot.command()
 async def pork(ctx):
-    if not CheckAdmin(ctx):
+    if not IsAdmin(ctx):
         return
     channel = await bot.fetch_channel(channels["voice_main"])
     for user in channel.members:
