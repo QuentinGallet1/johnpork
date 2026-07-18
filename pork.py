@@ -170,7 +170,10 @@ async def on_raw_reaction_add(payload):
     role = guild.get_role(role_id)
     member = payload.member or await guild.fetch_member(payload.user_id)
     if role:
-        await member.add_roles(role)
+        try:
+            await member.add_roles(role)
+        except discord.Forbidden:
+            print(f"Permissions manquantes pour ajouter le role {role.name} (verifie la position du role du bot et la permission Manage Roles)")
 
 @bot.event
 async def on_raw_reaction_remove(payload):
@@ -183,7 +186,10 @@ async def on_raw_reaction_remove(payload):
     role = guild.get_role(role_id)
     member = await guild.fetch_member(payload.user_id)
     if role:
-        await member.remove_roles(role)
+        try:
+            await member.remove_roles(role)
+        except discord.Forbidden:
+            print(f"Permissions manquantes pour retirer le role {role.name} (verifie la position du role du bot et la permission Manage Roles)")
 #endregion
 
 @bot.command(aliases=['i'])
@@ -423,7 +429,7 @@ async def race_shop(ctx):
 #endregion
 
 #AutoRole
-role_id_msg = 1527760845269106828 #1527757945037783200
+role_id_msg = 1527757945037783200
 
 @bot.command(aliases=['Aar'],hidden=True)
 async def AddRole(ctx,*,role_to_add : str):
@@ -433,7 +439,7 @@ async def AddRole(ctx,*,role_to_add : str):
     synt = CheckSyntax(role_to_add)
     if not synt:
         return
-    role_channel  = bot.get_channel(1514781221522116799)#1244367567670214668)
+    role_channel  = bot.get_channel(1244367567670214668)
     message = await role_channel.fetch_message(role_id_msg)
     await message.edit(content=f"{message.content}\n{role_to_add}")
     dict_roles = SplitRole(role_to_add)
@@ -447,7 +453,7 @@ async def AddRole(ctx,*,role_to_add : str):
 async def UpdateRole(ctx):
     if ctx is None or (not await IsAdmin(ctx))  :
         return
-    role_channel  = bot.get_channel(1514781221522116799)#1244367567670214668)
+    role_channel  = bot.get_channel(1244367567670214668)
     message = await role_channel.fetch_message(role_id_msg)
     all_roles= SplitRole(message.content)
     print(all_roles)
