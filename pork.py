@@ -27,7 +27,13 @@ intents.members = True  # Enable the members intent
 intents.message_content = True  # Required for reading message content
 intents.reactions = True
 intents.voice_states = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+print(os.getenv("TEST"))
+if os.getenv("TEST", "") == "TRUE" :
+    prefix = "t!"
+else:
+    prefix = "!"
+print(prefix)
+bot = commands.Bot(command_prefix=prefix, intents=intents)
 
 song_queue = asyncio.Queue()
 is_playing = False
@@ -75,7 +81,7 @@ async def on_message(message):
     rand = rd.random()
     threshold = 0.025  # once every 40 messages
 
-    if not message.attachments and message.content and message.content[0] == '!':
+    if not message.attachments and message.content and message.content.startswith(prefix):
         print('Processing command')
         await bot.process_commands(message)  # Allow command processing
         return
